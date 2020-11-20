@@ -3,7 +3,8 @@ from enum import IntEnum
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-GREY = (232, 232, 232)
+GREY_light = (232, 232, 232)
+GREY_dark = (128,128,128)
 RED=(255,0,0)
 BLUE=(0,0,255)
 PURPLE=(128,0,128)
@@ -27,8 +28,11 @@ class Cell:
         self.y=row*size
         self.ctype=ctype
         self.selected=False
-        self.surfaceRect=pygame.Surface((self.size-3, self.size-3))
-        self.opacity = 0
+        self.select_surfaceRect=pygame.Surface((self.size-3, self.size-3))
+        self.fog_surfaceRect=pygame.Surface((self.size-3, self.size-3))
+        self.select_opacity = 0
+        self.fog = True
+        self.fog_opacity = 255
         self.innerRect=pygame.Rect(self.x+2,self.y+2,self.size-1,self.size-1)
         #self.font = pygame.font.SysFont(NONE, 12)
 
@@ -45,6 +49,8 @@ class Cell:
     def set_ctype(self,ctype):
         self.ctype=ctype
 
+    def set_fog(self,tf):
+        self.fog = tf
 
     #-------------------------------------------------------
     # Does not change selected (boolean) or the ctype in the cell.
@@ -125,7 +131,7 @@ class Cell:
         else:
             return ''
     def draw(self,win):
-        selected_rec=self.surfaceRect
+        selected_rec=self.select_surfaceRect
         if (self.ctype == 1):
             self.image = pygame.image.load("MageB.png")
         elif self.ctype == 2:
@@ -157,16 +163,26 @@ class Cell:
             self.image = pygame.transform.scale(self.image, (2, 2))
 
         if(self.selected):
-            self.opacity = 100
+            selected_rec.fill(YELLOW)
+            self.select_opacity = 100
             mainColor=PURPLE
         else:
-            self.opacity = 0
+            self.select_opacity = 0
+
+        if(self.fog and not(1<=self.ctype <=3)):
+            self.fog_surfaceRect.fill(GREY_dark)
+            self.fog_opacity = 255
+        else:
+            self.fog_opacity = 0
 
         self.rect = self.image.get_rect(center=self.innerRect.center)
         self.innerRect = self.image.get_rect(center=self.innerRect.center)
         win.fill(WHITE, self.innerRect)
         pygame.draw.rect(win, WHITE, (self.x + 2, self.y + 2, self.size - 1, self.size - 1))
         win.blit(self.image, self.innerRect)
-        selected_rec.set_alpha(self.opacity)
-        selected_rec.fill(YELLOW)
-        win.blit(self.surfaceRect,(self.x+3,self.y+3))
+
+        selected_rec.set_alpha(self.select_opacity)
+        win.blit(selected_rec,(self.x+3,self.y+3))
+
+        self.fog_surfaceRect.set_alpha(self.fog_opacity)
+        win.blit(self.fog_surfaceRect,(self.x+3,self.y+3))

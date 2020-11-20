@@ -41,6 +41,7 @@ VICTORY_TEXT = "Game In Progress..."
 D_MOD = 2
 p_queue = []
 heapq.heapify(p_queue)
+FOG = True
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -172,6 +173,7 @@ class Grid:
         win = background
         for row in self.grid:
             for cell in row:
+                cell.set_fog(FOG)
                 cell.draw(win)
         pygame.display.update()
 # --------------------------------------------------------------------
@@ -838,6 +840,14 @@ reset_grid_button = pygame_gui.elements.UIButton(relative_rect =reset_layout, te
                                                 'top': 'top',
                                                 'bottom': 'top'})
 
+toggle_layout = pygame.Rect(0,0,150,40)
+toggle_layout.topright = (-70, 300)
+toggle_fog_button = pygame_gui.elements.UIButton(relative_rect =toggle_layout, text = "Toggle Fog", manager = manager,
+                                                anchors={'left': 'right',
+                                                'right': 'right',
+                                                'top': 'top',
+                                                'bottom': 'top'})
+
 generate_layout = pygame.Rect(0,0,150,40)
 generate_layout.topright = (-70, 200)
 generate_grid_button = pygame_gui.elements.UIButton(relative_rect =generate_layout, text = "Generate Board", manager = manager,
@@ -897,7 +907,7 @@ while is_running:
         if event.type == pygame.USEREVENT:
             if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                 D_MOD = int(dmod_text_entry.get_text())
-                print(f"D_MOD = {D_MOD}")
+                #print(f"D_MOD = {D_MOD}")
                 # if event.ui_element == hello_button:
                 #     print('Hello World!')
                 if event.ui_element == reset_grid_button:
@@ -906,6 +916,11 @@ while is_running:
                 if event.ui_element == generate_grid_button:
                     print('GENERATE GRID')
                     grid.generate_grid(D_MOD)
+                if event.ui_element == toggle_fog_button:
+                    FOG = not FOG
+                    grid.draw_map()
+                    print(f'TOGGLE FOG {FOG}')
+
 
     manager.process_events(event)
 
