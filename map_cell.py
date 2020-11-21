@@ -34,6 +34,7 @@ class Cell:
         self.fog = True
         self.fog_opacity = 255
         self.innerRect=pygame.Rect(self.x+2,self.y+2,self.size-1,self.size-1)
+        self.observationRect = pygame.Surface((self.size/5, self.size-3))
         #self.font = pygame.font.SysFont(NONE, 12)
 
 
@@ -183,6 +184,11 @@ class Cell:
 
         selected_rec.set_alpha(self.select_opacity)
         win.blit(selected_rec,(self.x+3,self.y+3))
+
+        if not (self.ctype == 7):
+            self.observationRect.fill(GREY_light)
+            self.observationRect.set_alpha(128)
+            win.blit(self.observationRect,(self.x+3,self.y+3))
 
         self.fog_surfaceRect.set_alpha(self.fog_opacity)
         win.blit(self.fog_surfaceRect,(self.x+3,self.y+3))

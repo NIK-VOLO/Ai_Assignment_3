@@ -317,18 +317,22 @@ def player_move_unit(grid, event):
                 str_board=grid.gen_string_board()
                 #print_string_board(str_board)
 
+                #----- TESTING OBSERVATION ---------
+
+                #-----------------------------------
+
                 grid.draw_map()
 
-                x=alphabeta((str_board,CPU_NUM_UNITS,PLAYER_NUM_UNITS),2,float('inf'),float('-inf'),True)
-                PLAYER_NUM_UNITS=x[1][2]
-                CPU_NUM_UNITS=x[1][1]
-                #print('end')
-                #print(h_val(x[1],True))
-
-                print("CHOSEN MOVE:")
-                print_string_state(x)
-
-                grid.convert_string_board(x[1][0])
+                # x=alphabeta((str_board,CPU_NUM_UNITS,PLAYER_NUM_UNITS),2,float('inf'),float('-inf'),True)
+                # PLAYER_NUM_UNITS=x[1][2]
+                # CPU_NUM_UNITS=x[1][1]
+                # #print('end')
+                # #print(h_val(x[1],True))
+                #
+                # print("CHOSEN MOVE:")
+                # print_string_state(x)
+                #
+                # grid.convert_string_board(x[1][0])
                 VICTORY_TEXT = check_win()
 
 
@@ -574,6 +578,40 @@ def get_neighbors(cell, grid, maximizingPlayer):
     return neighbors
 
 
+# def get_neighbors_string(pair, array, maximizingPlayer):
+#     global D_MOD
+#     col = pair[0]
+#     row = pair[1]
+#     neighbors = []
+#     board_size = D_MOD * 3
+#     for j in range(3):
+#         for i in range(3):
+#             #print(f'{cell.col-1+i}, {cell.row-1+j}')
+#             if(i == 1 and j == 1): # the current cell is self, don't check
+#                 continue
+#             if(col-1+i > board_size -1 or col-1+i < 0 or row-1+j > board_size -1 or row-1+j < 0):
+#                 #print(f"({i},{j}) OUT OF BOUNDS")
+#                 continue
+#             if(array[col-1+i][row-1+j] == 'H'):
+#                 #print(f"({i},{j}) IS A HOLE")                                        #------------- THIS MIGHT NEED OPTIZING ------------------
+#                 continue
+#             #Check maximizingPlayer:
+#             # Assume player is maximizingPlayer
+#             if not maximizingPlayer:
+#                 #if 1 <= array[cell.col-1+i][cell.row-1+j].ctype <= 3:
+#                 if array[col-1+i][row-1+j][0] == 'P':
+#                     #print(f"({i},{j}) IS A MAXimizingPlayer FRIENDLY PIECE (ignore)")
+#                     continue
+#             else:
+#                 #if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
+#                 if array[col-1+i][row-1+j][0] == 'C':
+#                     #print(f"({i},{j}) IS A MINImizingPlayer FRIENDLY PIECE (ignore)")
+#                     continue
+#             #print(f"({i},{j}) is VALID")
+#             #neighbors.append((array[col-1+i][row-1+j],col-1+i,row-1+j))
+#             neighbors.append((col-1+i,row-1+j))
+#     return neighbors
+
 def get_neighbors_string(pair, array, maximizingPlayer):
     global D_MOD
     col = pair[0]
@@ -607,6 +645,16 @@ def get_neighbors_string(pair, array, maximizingPlayer):
             #neighbors.append((array[col-1+i][row-1+j],col-1+i,row-1+j))
             neighbors.append((col-1+i,row-1+j))
     return neighbors
+
+
+#Get observation of unit's surroundings
+#   PIT --> Breeze
+#   WUMPUS --> Stench
+#   HERO --> Sound
+#   MAGE --> Heat
+def observe(pair, array, player):
+    neighbors = get_neighbors_string(pair, array, player)
+    print(neighbors)
 
 
 # Performs a swap on the pieces for the scenario where coord1 moves to coord2 and beats the unit at coord2
@@ -815,6 +863,10 @@ cpu_score_text = pygame_gui.elements.UILabel(relative_rect = cpu_score_layout, t
                                                 'right': 'right',
                                                 'top': 'top',
                                                 'bottom': 'top'})
+
+cpu_captured_layout = pygame.Rect(0,0,150,40)
+cpu_captured_layout.topright = (-138, 70)
+
 
 player_score_layout = pygame.Rect(0,0,150,40)
 player_score_layout.bottomright = (-138, -20)
