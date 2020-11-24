@@ -8,6 +8,7 @@ import copy
 from itertools import chain
 import time
 import math
+from bitarray import bitarray
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** GAME WINDOW INITIALIZATION  ******
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -242,6 +243,7 @@ def player_move_unit(grid, event):
                 NUM_SELECTED -= 1
                 PLAYER_SELECTIONS.get()
             elif cell.selected == False and NUM_SELECTED < 2:
+                get_observations(cell, grid, False)
                 if NUM_SELECTED == 0 and (1 <= cell.ctype <= 3):
                     update_selected(cell)
                     #get_neighbors(cell,grid, True)
@@ -578,40 +580,6 @@ def get_neighbors(cell, grid, maximizingPlayer):
     return neighbors
 
 
-# def get_neighbors_string(pair, array, maximizingPlayer):
-#     global D_MOD
-#     col = pair[0]
-#     row = pair[1]
-#     neighbors = []
-#     board_size = D_MOD * 3
-#     for j in range(3):
-#         for i in range(3):
-#             #print(f'{cell.col-1+i}, {cell.row-1+j}')
-#             if(i == 1 and j == 1): # the current cell is self, don't check
-#                 continue
-#             if(col-1+i > board_size -1 or col-1+i < 0 or row-1+j > board_size -1 or row-1+j < 0):
-#                 #print(f"({i},{j}) OUT OF BOUNDS")
-#                 continue
-#             if(array[col-1+i][row-1+j] == 'H'):
-#                 #print(f"({i},{j}) IS A HOLE")                                        #------------- THIS MIGHT NEED OPTIZING ------------------
-#                 continue
-#             #Check maximizingPlayer:
-#             # Assume player is maximizingPlayer
-#             if not maximizingPlayer:
-#                 #if 1 <= array[cell.col-1+i][cell.row-1+j].ctype <= 3:
-#                 if array[col-1+i][row-1+j][0] == 'P':
-#                     #print(f"({i},{j}) IS A MAXimizingPlayer FRIENDLY PIECE (ignore)")
-#                     continue
-#             else:
-#                 #if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
-#                 if array[col-1+i][row-1+j][0] == 'C':
-#                     #print(f"({i},{j}) IS A MINImizingPlayer FRIENDLY PIECE (ignore)")
-#                     continue
-#             #print(f"({i},{j}) is VALID")
-#             #neighbors.append((array[col-1+i][row-1+j],col-1+i,row-1+j))
-#             neighbors.append((col-1+i,row-1+j))
-#     return neighbors
-
 def get_neighbors_string(pair, array, maximizingPlayer):
     global D_MOD
     col = pair[0]
@@ -646,15 +614,47 @@ def get_neighbors_string(pair, array, maximizingPlayer):
             neighbors.append((col-1+i,row-1+j))
     return neighbors
 
+# POPULATES ARRAY WITH ADJACENT CELLS TO GET OBSERVATIONS FOR THE GIVEN CELL
+# Get observation of unit's surroundings
+#   PIT (3)--> Breeze
+#   WUMPUS (1)--> Stench
+#   HERO (2)--> Sound
+#   MAGE (0) --> Heat
+def get_observations(cell, grid, maximizingPlayer):
+    global D_MOD
+    neighbors = []
+    board_size = D_MOD * 3
+    bitarr = bitarray(4)
+    bitarr.setall(0)
+    for j in range(3):
+        for i in range(3):
+            #print(f'{cell.col-1+i}, {cell.row-1+j}')
 
-#Get observation of unit's surroundings
-#   PIT --> Breeze
-#   WUMPUS --> Stench
-#   HERO --> Sound
-#   MAGE --> Heat
-def observe(pair, array, player):
-    neighbors = get_neighbors_string(pair, array, player)
-    print(neighbors)
+            if(i == 1 and j == 1): # the current cell is self, don't check
+                continue
+            if(cell.col-1+i > board_size -1 or cell.col-1+i < 0 or cell.row-1+j > board_size -1 or cell.row-1+j < 0):
+                #print(f"({i},{j}) OUT OF BOUNDS")
+                continue
+            if(grid.grid[cell.col-1+i][cell.row-1+j].ctype == Ctype.HOLE):
+                #print(f"({i},{j}) IS HOLE")
+                bitarr[3] = 1
+            #Check maximizingPlayer:
+            # Assume player is maximizingPlayer
+            type = grid.grid[cell.col-1+i][cell.row-1+j].ctype
+            if maximizingPlayer:
+                if 1 <= type <= 3:
+                    #print(f"({i},{j}) IS A MAXimizingPlayer FRIENDLY PIECE (ignore)")
+                    bitarr[type-1] = 1
+            else:
+                if 4 <= type <= 6:
+                    #print(f"({i},{j}) IS A MINImizingPlayer FRIENDLY PIECE (ignore)")
+                    bitarr[type-4] = 1
+            #print(f"({i},{j}) is VALID")
+
+            #neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
+    #print(bitarr)
+    cell.set_observation(bitarr)
+    return bitarr
 
 
 # Performs a swap on the pieces for the scenario where coord1 moves to coord2 and beats the unit at coord2

@@ -1,5 +1,6 @@
 import pygame
 from enum import IntEnum
+from bitarray import bitarray
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -35,8 +36,16 @@ class Cell:
         self.fog_opacity = 255
         self.innerRect=pygame.Rect(self.x+2,self.y+2,self.size-1,self.size-1)
         self.observationRect = pygame.Surface((self.size/5, self.size-3))
+        self.observe_array = bitarray(4) #CREATES A BIT ARRAY FOR OBSERVATION BOOLEANS (bit index order: 0123)
+        self.observe_array.setall(0)
+        #self.observe_array[0] = 1
+        #print(self.observe_array)
+
         #self.font = pygame.font.SysFont(NONE, 12)
 
+    def set_observation(self, bitarr):
+        self.observe_array = bitarr
+        #print(self.observe_array)
 
     def contains_piece(self,other):
         return self.ctype<7
