@@ -84,6 +84,20 @@ class Grid:
             for k in hole_locations:
                 if(i != 0 and i != self.axis_dim-1):
                     self.grid[k][i].set_ctype(Ctype.HOLE)
+        
+        holes_in_row=int(self.axis_dim/3-1)
+        for i in range(self.axis_dim):
+            for j in range(self.axis_dim):
+                if i==self.axis_dim-1:
+                    if j%3==0:
+                        self.grid[j][i].set_probabilities(0,1,0,0)
+                    elif j%3==1:
+                        self.grid[j][i].set_probabilities(0,0,1,0)
+                    elif j%3==2:
+                        self.grid[j][i].set_probabilities(0,0,0,1)
+                elif i!=0:
+                    self.grid[j][i].set_probabilities(holes_in_row/self.axis_dim,0,0,0)
+        print(self.grid)
         return self.grid
 # --------------------------------------------------------------------
     # Resets the game, keeps the current hole locations

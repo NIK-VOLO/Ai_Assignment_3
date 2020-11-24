@@ -39,10 +39,19 @@ class Cell:
         self.observationSurf = pygame.Surface((self.size/5, self.size-3))
         self.observe_array = bitarray(4) #CREATES A BIT ARRAY FOR OBSERVATION BOOLEANS (bit index order: 0123)
         self.observe_array.setall(0)
+        self.p_hole=0
+        self.p_hero=0
+        self.p_wumpus=0
+        self.p_mage=0
         #self.observe_array[0] = 1
         #print(self.observe_array)
 
         #self.font = pygame.font.SysFont(NONE, 12)
+    def set_probabilities(self,hole,wumpus,hero,mage):
+        self.p_hole=hole
+        self.p_hero=hero
+        self.p_wumpus=wumpus
+        self.p_mage=mage
 
     def set_observation(self, bitarr):
         self.observe_array = bitarr
@@ -51,8 +60,8 @@ class Cell:
     def contains_piece(self,other):
         return self.ctype<7
 
-    def __str__(self):
-        return f'({self.col},{self.row}),{self.get_type_text()}'
+    def __repr__(self):
+        return f'({self.col},{self.row}),{self.get_type_text()},p_hole:{self.p_hole},p_hero:{self.p_hero},p_wumpus:{self.p_wumpus},p_mage:{self.p_mage}'
     #Called when a cell is clicked on,
     def set_selected(self,tf):
         self.selected=tf
