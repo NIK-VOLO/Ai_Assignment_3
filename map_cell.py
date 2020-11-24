@@ -10,6 +10,7 @@ RED=(255,0,0)
 BLUE=(0,0,255)
 PURPLE=(128,0,128)
 YELLOW =(255, 230, 0)
+GREEN = (0, 255, 26)
 class Ctype(IntEnum):
     MAGE=1
     WUMPUS=2
@@ -35,7 +36,7 @@ class Cell:
         self.fog = True
         self.fog_opacity = 255
         self.innerRect=pygame.Rect(self.x+2,self.y+2,self.size-1,self.size-1)
-        self.observationRect = pygame.Surface((self.size/5, self.size-3))
+        self.observationSurf = pygame.Surface((self.size/5, self.size-3))
         self.observe_array = bitarray(4) #CREATES A BIT ARRAY FOR OBSERVATION BOOLEANS (bit index order: 0123)
         self.observe_array.setall(0)
         #self.observe_array[0] = 1
@@ -194,10 +195,20 @@ class Cell:
         selected_rec.set_alpha(self.select_opacity)
         win.blit(selected_rec,(self.x+3,self.y+3))
 
-        if not (self.ctype == 7):
-            self.observationRect.fill(GREY_light)
-            self.observationRect.set_alpha(128)
-            win.blit(self.observationRect,(self.x+3,self.y+3))
+        if not (self.ctype == 7) and not (self.ctype == 8):
+            self.observationSurf.fill(GREY_light)
+            self.observationSurf.set_alpha(128)
+            if self.observe_array[0] == 1:
+                pygame.draw.rect(self.observationSurf, RED, pygame.Rect(0, 0, self.size/5, self.size/4))
+            if self.observe_array[1] == 1:
+                pygame.draw.rect(self.observationSurf, GREEN, pygame.Rect(0, (self.size/4), self.size/5, self.size/4))
+            if self.observe_array[2] == 1:
+                pygame.draw.rect(self.observationSurf, YELLOW, pygame.Rect(0, 2*(self.size/4), self.size/5, self.size/4))
+            if self.observe_array[3] == 1:
+                pygame.draw.rect(self.observationSurf, (65, 16, 92), pygame.Rect(0, 3*(self.size/4), self.size/5, self.size/4))
+
+            win.blit(self.observationSurf,(self.x+3,self.y+3))
+
 
         self.fog_surfaceRect.set_alpha(self.fog_opacity)
         win.blit(self.fog_surfaceRect,(self.x+3,self.y+3))

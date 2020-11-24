@@ -176,6 +176,10 @@ class Grid:
             for cell in row:
                 cell.set_fog(FOG)
                 cell.draw(win)
+                if(1<=cell.ctype<=3):
+                    get_observations(cell, grid, False)
+                if(4<=cell.ctype<=6):
+                    get_observations(cell, grid, True)
         pygame.display.update()
 # --------------------------------------------------------------------
 
@@ -243,7 +247,7 @@ def player_move_unit(grid, event):
                 NUM_SELECTED -= 1
                 PLAYER_SELECTIONS.get()
             elif cell.selected == False and NUM_SELECTED < 2:
-                get_observations(cell, grid, False)
+                #get_observations(cell, grid, False)
                 if NUM_SELECTED == 0 and (1 <= cell.ctype <= 3):
                     update_selected(cell)
                     #get_neighbors(cell,grid, True)
