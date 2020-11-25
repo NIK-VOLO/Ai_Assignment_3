@@ -699,7 +699,7 @@ def prob_dist(grid):
     global FRESH
     test_cell = grid.grid[0][5]
     prob = 0
-    neighbors = get_neighbors(test_cell, grid, False)
+    neighbors = get_neighbors(test_cell, grid, True)
 
     #print(neighbors)
     prob += (1-1/6)*test_cell.p_wumpus
@@ -710,20 +710,23 @@ def prob_dist(grid):
     return prob
 
 def calculate_prob(grid):
+    global D_MOD
     w_prob=0
     m_prob=0
     h_prob=0
     p_prob=0
-    for i in range(len(grid)):
-        for j in range(len(grid[0])):
-            temp_cell=grid[i][j]
-            neighbors=get_neighbors(temp_cell,grid,False)
+    axis_dim = 3*D_MOD
+    for i in range(axis_dim):
+        for j in range(axis_dim):
+            temp_cell=grid.grid[i][j]
+            neighbors=get_neighbors(temp_cell,grid,True)
             for n in neighbors:
                 w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*len(neighbors))
                 m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*len(neighbors))
                 h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*len(neighbors))
+                print(n)
             p_prob=n.p_hole
-            grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
+            grid.grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
             w_prob=0
             m_prob=0
             h_prob=0
@@ -826,7 +829,8 @@ grid.draw_map()
 
 
 
-prob_dist(grid)
+#prob_dist(grid)
+calculate_prob(grid)
 
 while is_running:
     time_delta = clock.tick(60)/1000.0
