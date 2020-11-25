@@ -370,120 +370,7 @@ def is_terminal(node):
 
 # Returns the heuristic value that is used to sort the board states in the priority queue
 
-def h_val(node,maximizingPlayer):
-    #return h_sum_dist(node, maximizingPlayer)
-    if node[2]==0:
-        return 10000
-    elif node[1]==0:
-        return -10000
 
-    if node[2]==0:
-        return 10000
-    if node[1] == 0:
-        return -10000
-
-    diff = h_val1(node,maximizingPlayer)
-    strength = h_p_value(node,maximizingPlayer)
-    print(strength)
-    result = 0
-
-    if diff > 0:
-        result += h_sum_dist(node, maximizingPlayer) * 20
-    elif diff < 0:
-        result += h_sum_dist(node, maximizingPlayer)
-    elif diff == 0:
-        if node[2] == 1:
-            result += h_sum_dist(node, maximizingPlayer) * 50
-        else:
-            result += h_val4(node,maximizingPlayer) + h_sum_dist(node,maximizingPlayer)
-    result += diff*50 + h_val2(node,maximizingPlayer) + h_val3(node,maximizingPlayer) + strength
-
-    return result
-
-
-#Calculates the relative value of the pieces --> Which side has stronger units
-def h_p_value(node, maximizingPlayer):
-    p_list=get_piece_list(node[0],False)
-    cp_list =get_piece_list(node[0], True)
-    board=node[0]
-    strength = 0
-    for cp in cp_list:
-        cp_unit = board[cp[0]][cp[1]]
-        for p in p_list:
-            p_unit = board[p[0]][p[1]]
-            if cp_unit == "CM":
-                if p_unit == "PW":
-                    strength -= 1
-                elif p_unit == "PK":
-                    strength += 1
-            elif cp_unit == "CW":
-                if p_unit == "PK":
-                    strength -= 1
-                elif p_unit == "PM":
-                    strength += 1
-            elif cp_unit == "CK":
-                if p_unit == 'PM':
-                    strength -= 1
-                elif p_unit == "PW":
-                    strength += 1
-    return strength
-#difference in # of pieces, makes it more aggressive
-def h_val1(node,maximizingPlayer):
-    return (node[1]-node[2])
-
-#number of different neighbor enemy pieces
-def h_val2(node,maximizingPlayer):
-    p_list=get_piece_list(node[0],True)
-    vals=[0]*len(p_list)
-    for i in range(len(p_list)):
-        current=p_list[i]
-        neighbors=get_neighbors_string(current,node[0],True)
-        for j in neighbors:
-            if node[0][j[0]][j[1]][0]!='-':
-                f=string_fight(node[0][current[0]][current[1]],node[0][j[0]][j[1]])
-                if(f==1):
-                    vals[i]+=1
-                elif(f==-1):
-                    vals[i]-=1
-    return sum(vals)
-
-# Number of friendly neighbor pieces, makes it cluster more
-def h_val3(node,maximizingPlayer):
-    p_list=get_piece_list(node[0],True)
-    vals=[1]*len(p_list)
-    for i in range(len(p_list)):
-        current=p_list[i]
-        neighbors=get_neighbors_string(current,node[0],True)
-        friendlyNeighbors=get_neighbors_string(current,node[0],not True)
-        for j in neighbors:
-            if node[0][j[0]][j[1]][0]!='-':
-                f=string_fight(node[0][current[0]][current[1]],node[0][j[0]][j[1]])
-                if(f==1):
-                    vals[i]+=1
-                elif(f==-1):
-                    vals[i]-=1
-        for k in friendlyNeighbors:
-            if node[0][k[0]][k[1]][0]!='-':
-                vals[i]+=1
-    return sum(vals)/len(p_list)
-
-#Row #,makes it more aggressive
-def h_val4(node,maximizingPlayer):
-    global D_MOD
-    p_list=get_piece_list(node[0],True)
-    total=0
-    for i in p_list:
-        #print(i[1])
-        if(True):
-            total+=i[1]
-        else:
-            total+=(3*D_MOD)-1+i[1]
-    return total/len(p_list)
-
-def row_dif(node):
-    global D_MOD
-    board=node[0]
-    return h_val4(node,True)-h_val4(node,False)
 
 # Calculates the average 'unit position' for each player, then calculates the MANHATTAN distance
 def h_distance_avg(node, maximizingPlayer):
@@ -774,74 +661,6 @@ def print_string_state(state):
     print("-----------------------------------")
 
 
-def alphabeta(node,depth,alpha,beta,maximizingPlayer):
-    #return #TEMPORARY
-    #global p_queue
-    #p_queue=[]
-    if depth==0 or is_terminal(node):
-        return (h_val(node,maximizingPlayer),node)
-    str_grid=node[0]
-    best_move=None #this will be used to return the string_grid of the best move that the computer calculated
-    if maximizingPlayer:
-        value=float('-inf')
-        p_queue=[]
-        heapq.heapify(p_queue)
-        #------------------------------------------------
-        #create the childs of the current board state
-        pieces = get_piece_list(str_grid, maximizingPlayer)
-        game_states=list()
-        for i in pieces:
-            neighbors=get_neighbors_string(i,node[0],True)
-            for size in range(len(neighbors)):
-                game_states.append(get_child_state(i,neighbors[size],node,maximizingPlayer))
-        #------------------------------------------------
-        # Get neighbors of
-        for child in game_states:
-
-            heapq.heappush(p_queue,(h_val(child,maximizingPlayer),child))
-        #print('length')
-        #print(len(p_queue))
-        while len(p_queue)>0:
-            child=heapq.heappop(p_queue)
-            #print_string_state(child)
-            alphabeta_results=alphabeta((child[1][0],child[1][1],child[1][2]),depth-1,alpha,beta,False)
-            if alphabeta_results[0]>value:
-                value=alphabeta_results[0]
-                best_move=(child[1][0],child[1][1],child[1][2])
-            #I don't know if the next line should be part of the above if statement
-                alpha=max(alpha,value)
-            if(alpha>=beta):
-                continue
-        return (value,best_move)
-    else:
-        value=float('inf')
-
-        p_queue=[]
-        heapq.heapify(p_queue)
-        #------------------------------------------------
-        #create the childs of the current board state
-        pieces=get_piece_list(str_grid,maximizingPlayer)
-        game_states=list()
-        for i in pieces:
-            neighbors=get_neighbors_string(i,node[0],False)
-            for size in range(len(neighbors)):
-                game_states.append(get_child_state(i,neighbors[size],node,maximizingPlayer))
-        #------------------------------------------------
-        for child in game_states:
-            heapq.heappush(p_queue,(0-h_val(child,maximizingPlayer),child))
-            #add child to queue
-        while len(p_queue)>0:
-            child=heapq.heappop(p_queue)
-            alphabeta_results=alphabeta((child[1][0],child[1][1],child[1][2]),depth-1,alpha,beta,True)
-            if alphabeta_results[0]<value:
-                value=alphabeta_results[0]
-                best_move=(child[1][0],child[1][1],child[1][2])
-                beta=min(beta,value)
-            if(alpha>=beta):
-                continue
-        return (value,best_move)
-#structure of node: (cell, grid,cpunumpieices,playernumpieces)
-
 
 
 # Check if the game has ended
@@ -889,6 +708,26 @@ def prob_dist(grid):
         #print(n.p_wumpus)
     print(prob)
     return prob
+
+def calculate_prob(grid):
+    w_prob=0
+    m_prob=0
+    h_prob=0
+    p_prob=0
+    for i in range(len(grid)):
+        for j in range(len(grid[0])):
+            temp_cell=grid[i][j]
+            neighbors=get_neighbors(temp_cell,grid,False)
+            for n in neighbors:
+                w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*len(neighbors))
+                m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*len(neighbors))
+                h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*len(neighbors))
+            p_prob=n.p_hole
+            grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
+            w_prob=0
+            m_prob=0
+            h_prob=0
+            p_prob=0
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** UI ELEMENTS  ******
