@@ -43,7 +43,7 @@ D_MOD = 2
 p_queue = []
 heapq.heapify(p_queue)
 FOG = True
-
+FRESH = True
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** GAME GRID FUNCTIONS  ******
@@ -84,7 +84,7 @@ class Grid:
             for k in hole_locations:
                 if(i != 0 and i != self.axis_dim-1):
                     self.grid[k][i].set_ctype(Ctype.HOLE)
-        
+
         holes_in_row=int(self.axis_dim/3-1)
         for i in range(self.axis_dim):
             for j in range(self.axis_dim):
@@ -97,7 +97,7 @@ class Grid:
                         self.grid[j][i].set_probabilities(0,0,0,1)
                 elif i!=0:
                     self.grid[j][i].set_probabilities(holes_in_row/self.axis_dim,0,0,0)
-        print(self.grid)
+        print(self.grid[0][5])
         return self.grid
 # --------------------------------------------------------------------
     # Resets the game, keeps the current hole locations
@@ -355,7 +355,7 @@ def player_move_unit(grid, event):
                 # grid.convert_string_board(x[1][0])
                 VICTORY_TEXT = check_win()
 
-
+                update_probs(grid)
                 return
             else:
                 print("select another to move")
@@ -862,6 +862,33 @@ def check_win():
         return 'Player Wins'
     return "Game In Progress..."
 
+def update_probs(grid):
+    global FRESH
+    test_cell = grid.grid[0][5]
+    if FRESH:
+        neighbors = get_neighbors(test_cell, grid, False)
+        print(f"#neighbors = {len(neighbors)}")
+        print(neighbors)
+        for n in neighbors:
+            n.p_wumpus = 1/len(neighbors)
+        #FRESH = False
+    else:
+        pass
+
+# TEST FUNCTION FOR PROBABILITY DIST
+def prob_dist(grid):
+    global FRESH
+    test_cell = grid.grid[0][5]
+    prob = 0
+    neighbors = get_neighbors(test_cell, grid, False)
+
+    #print(neighbors)
+    prob += (1-1/6)*test_cell.p_wumpus
+    for n in neighbors:
+        prob += n.p_wumpus * 1/(6*len(neighbors))
+        #print(n.p_wumpus)
+    print(prob)
+    return prob
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** UI ELEMENTS  ******
@@ -960,7 +987,7 @@ grid.draw_map()
 
 
 
-
+prob_dist(grid)
 
 while is_running:
     time_delta = clock.tick(60)/1000.0
