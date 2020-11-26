@@ -62,7 +62,7 @@ class Cell:
 
     def __repr__(self):
         #return f'({self.col},{self.row}),{self.get_type_text()},p_hole:{self.p_hole},p_hero:{self.p_hero},p_wumpus:{self.p_wumpus},p_mage:{self.p_mage}'
-        return f'({self.col},{self.row}),{self.get_type_text()}, p_hole: {"%.2f%%" % (100 * self.p_hole)}, p_hero: {"%.2f%%" % (100 * self.p_hero)}, p_wumpus: {"%.2f%%" % (100 * self.p_wumpus)}, p_mage: {"%.2f%%" % (100 * self.p_mage)}'
+        return f'({self.col},{self.row}),{self.get_type_text()}, \tp_hole: {"%.2f%%" % (100 * self.p_hole)} , \tp_hero: {"%.2f%%" % (100 * self.p_hero)}, \tp_wumpus: {"%.2f%%" % (100 * self.p_wumpus)}, \tp_mage: {"%.2f%%" % (100 * self.p_mage)}'
     #Called when a cell is clicked on,
     def set_selected(self,tf):
         self.selected=tf

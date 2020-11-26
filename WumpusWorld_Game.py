@@ -97,7 +97,7 @@ class Grid:
                         self.grid[j][i].set_probabilities(0,0,0,1)
                 elif i!=0:
                     self.grid[j][i].set_probabilities(holes_in_row/self.axis_dim,0,0,0)
-        print(self.grid[0][5])
+        #print(self.grid[0][5])
         return self.grid
 # --------------------------------------------------------------------
     # Resets the game, keeps the current hole locations
@@ -133,6 +133,7 @@ class Grid:
         background.fill((0,0,0))
         self.init_grid()
         self.draw_map()
+        calculate_prob(self)
 
 # --------------------------------------------------------------------
 
@@ -355,7 +356,7 @@ def player_move_unit(grid, event):
                 # grid.convert_string_board(x[1][0])
                 VICTORY_TEXT = check_win()
 
-                update_probs(grid)
+                #update_probs(grid)
                 return
             else:
                 print("select another to move")
@@ -483,6 +484,32 @@ def get_neighbors(cell, grid, maximizingPlayer):
             #print(f"({i},{j}) is VALID")
             neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
     return neighbors
+
+# def get_neighbors(cell, grid, maximizingPlayer):
+#     global D_MOD
+#     neighbors = []
+#     board_size = D_MOD * 3
+#     for j in range(3):
+#         for i in range(3):
+#             #print(f'{cell.col-1+i}, {cell.row-1+j}')
+#             if(i == 1 and j == 1): # the current cell is self, don't check
+#                 continue
+#             if(cell.col-1+i > board_size -1 or cell.col-1+i < 0 or cell.row-1+j > board_size -1 or cell.row-1+j < 0):
+#                 #print(f"({i},{j}) OUT OF BOUNDS")
+#                 continue
+#             #Check maximizingPlayer:
+#             # Assume player is maximizingPlayer
+#             if not maximizingPlayer:
+#                 if 1 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 3:
+#                     #print(f"({i},{j}) IS A MAXimizingPlayer FRIENDLY PIECE (ignore)")
+#                     continue
+#             else:
+#                 if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
+#                     #print(f"({i},{j}) IS A MINImizingPlayer FRIENDLY PIECE (ignore)")
+#                     continue
+#             #print(f"({i},{j}) is VALID")
+#             neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
+#     return neighbors
 
 
 def get_neighbors_string(pair, array, maximizingPlayer):
@@ -711,6 +738,7 @@ def prob_dist(grid):
 
 def calculate_prob(grid):
     global D_MOD
+    global FRESH
     w_prob=0
     m_prob=0
     h_prob=0
@@ -725,6 +753,10 @@ def calculate_prob(grid):
             p_prob = (1-1/PLAYER_NUM_UNITS) * p_prob
             neighbors=get_neighbors(temp_cell,grid,True)
             for n in neighbors:
+                # if FRESH:
+                #     n.p_wumpus = 1/len(neighbors)
+                #     n.p_mage = 1/len(neighbors)
+                #     n.p_hero = 1/len(neighbors)
                 w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*len(neighbors))
                 m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*len(neighbors))
                 h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*len(neighbors))
@@ -735,7 +767,7 @@ def calculate_prob(grid):
             m_prob=0
             h_prob=0
             p_prob=0
-
+    FRESH = False
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** UI ELEMENTS  ******
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -834,7 +866,7 @@ grid.draw_map()
 
 
 #prob_dist(grid)
-calculate_prob(grid)
+#calculate_prob(grid)
 
 while is_running:
     time_delta = clock.tick(60)/1000.0
