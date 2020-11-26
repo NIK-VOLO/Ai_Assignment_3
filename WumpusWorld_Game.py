@@ -456,35 +456,6 @@ def distance_manhat(p1, p2):
 # Gets the cells around the piece that have valid moves
 # --> If the cell has a pit, we assume that it's a bad move and don't add it to the list
 # --> Depending on if the turn is maximizingPlayer or not, add cells containing enemy units but ignore friendly units
-def get_neighbors(cell, grid, maximizingPlayer):
-    global D_MOD
-    neighbors = []
-    board_size = D_MOD * 3
-    for j in range(3):
-        for i in range(3):
-            #print(f'{cell.col-1+i}, {cell.row-1+j}')
-            if(i == 1 and j == 1): # the current cell is self, don't check
-                continue
-            if(cell.col-1+i > board_size -1 or cell.col-1+i < 0 or cell.row-1+j > board_size -1 or cell.row-1+j < 0):
-                #print(f"({i},{j}) OUT OF BOUNDS")
-                continue
-            if(grid.grid[cell.col-1+i][cell.row-1+j].ctype == Ctype.HOLE):
-                #print(f"({i},{j}) IS A HOLE")                                        #------------- THIS MIGHT NEED OPTIZING ------------------
-                continue
-            #Check maximizingPlayer:
-            # Assume player is maximizingPlayer
-            if not maximizingPlayer:
-                if 1 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 3:
-                    #print(f"({i},{j}) IS A MAXimizingPlayer FRIENDLY PIECE (ignore)")
-                    continue
-            else:
-                if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
-                    #print(f"({i},{j}) IS A MINImizingPlayer FRIENDLY PIECE (ignore)")
-                    continue
-            #print(f"({i},{j}) is VALID")
-            neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
-    return neighbors
-
 # def get_neighbors(cell, grid, maximizingPlayer):
 #     global D_MOD
 #     neighbors = []
@@ -496,6 +467,9 @@ def get_neighbors(cell, grid, maximizingPlayer):
 #                 continue
 #             if(cell.col-1+i > board_size -1 or cell.col-1+i < 0 or cell.row-1+j > board_size -1 or cell.row-1+j < 0):
 #                 #print(f"({i},{j}) OUT OF BOUNDS")
+#                 continue
+#             if(grid.grid[cell.col-1+i][cell.row-1+j].ctype == Ctype.HOLE):
+#                 #print(f"({i},{j}) IS A HOLE")                                        #------------- THIS MIGHT NEED OPTIZING ------------------
 #                 continue
 #             #Check maximizingPlayer:
 #             # Assume player is maximizingPlayer
@@ -510,6 +484,32 @@ def get_neighbors(cell, grid, maximizingPlayer):
 #             #print(f"({i},{j}) is VALID")
 #             neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
 #     return neighbors
+
+def get_neighbors(cell, grid, maximizingPlayer):
+    global D_MOD
+    neighbors = []
+    board_size = D_MOD * 3
+    for j in range(3):
+        for i in range(3):
+            #print(f'{cell.col-1+i}, {cell.row-1+j}')
+            if(i == 1 and j == 1): # the current cell is self, don't check
+                continue
+            if(cell.col-1+i > board_size -1 or cell.col-1+i < 0 or cell.row-1+j > board_size -1 or cell.row-1+j < 0):
+                #print(f"({i},{j}) OUT OF BOUNDS")
+                continue
+            #Check maximizingPlayer:
+            # Assume player is maximizingPlayer
+            if not maximizingPlayer:
+                if 1 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 3:
+                    #print(f"({i},{j}) IS A MAXimizingPlayer FRIENDLY PIECE (ignore)")
+                    continue
+            else:
+                if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
+                    #print(f"({i},{j}) IS A MINImizingPlayer FRIENDLY PIECE (ignore)")
+                    continue
+            #print(f"({i},{j}) is VALID")
+            neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
+    return neighbors
 
 
 def get_neighbors_string(pair, array, maximizingPlayer):
@@ -747,10 +747,10 @@ def calculate_prob(grid):
     for i in range(axis_dim):
         for j in range(axis_dim):
             temp_cell=grid.grid[i][j]
-            w_prob = (1-1/PLAYER_NUM_UNITS) * w_prob
-            m_prob = (1-1/PLAYER_NUM_UNITS) * m_prob
-            h_prob = (1-1/PLAYER_NUM_UNITS) * h_prob
-            p_prob = (1-1/PLAYER_NUM_UNITS) * p_prob
+            w_prob += (1-1/PLAYER_NUM_UNITS) * w_prob
+            m_prob += (1-1/PLAYER_NUM_UNITS) * m_prob
+            h_prob += (1-1/PLAYER_NUM_UNITS) * h_prob
+            p_prob += (1-1/PLAYER_NUM_UNITS) * p_prob
             neighbors=get_neighbors(temp_cell,grid,True)
             for n in neighbors:
                 # if FRESH:
@@ -768,6 +768,8 @@ def calculate_prob(grid):
             h_prob=0
             p_prob=0
     FRESH = False
+
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** UI ELEMENTS  ******
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -896,6 +898,11 @@ while is_running:
                     FOG = not FOG
                     grid.draw_map()
                     print(f'TOGGLE FOG {FOG}')
+
+        if event.type == pygame.MOUSEBUTTONUP:
+            pos = pygame.mouse.get_pos()
+            col, row = get_clicked_pos(grid, pos)
+            print(grid.grid[col][row])
 
 
     manager.process_events(event)
