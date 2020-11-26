@@ -752,6 +752,8 @@ def calculate_prob(grid):
             h_prob += (1-1/PLAYER_NUM_UNITS) * h_prob
             p_prob += (1-1/PLAYER_NUM_UNITS) * p_prob
             neighbors=get_neighbors(temp_cell,grid,True)
+            print(neighbors)
+            return
             for n in neighbors:
                 # if FRESH:
                 #     n.p_wumpus = 1/len(neighbors)
@@ -760,7 +762,7 @@ def calculate_prob(grid):
                 w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*len(neighbors))
                 m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*len(neighbors))
                 h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*len(neighbors))
-                print(n)
+                #print(n)
             p_prob=n.p_hole
             grid.grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
             w_prob=0
@@ -902,7 +904,8 @@ while is_running:
         if event.type == pygame.MOUSEBUTTONUP:
             pos = pygame.mouse.get_pos()
             col, row = get_clicked_pos(grid, pos)
-            print(grid.grid[col][row])
+            if col < 3*D_MOD and row < 3*D_MOD:
+                print(grid.grid[col][row])
 
 
     manager.process_events(event)
