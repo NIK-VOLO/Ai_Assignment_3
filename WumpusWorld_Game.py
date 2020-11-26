@@ -747,10 +747,10 @@ def calculate_prob(grid):
     for i in range(axis_dim):
         for j in range(axis_dim):
             temp_cell=grid.grid[i][j]
-            w_prob += (1-1/PLAYER_NUM_UNITS) * w_prob
-            m_prob += (1-1/PLAYER_NUM_UNITS) * m_prob
-            h_prob += (1-1/PLAYER_NUM_UNITS) * h_prob
-            p_prob += (1-1/PLAYER_NUM_UNITS) * p_prob
+            w_prob += (1-1/PLAYER_NUM_UNITS) * grid.grid[i][j].p_wumpus
+            m_prob += (1-1/PLAYER_NUM_UNITS) * grid.grid[i][j].p_mage
+            h_prob += (1-1/PLAYER_NUM_UNITS) * grid.grid[i][j].p_hero
+            p_prob += grid.grid[i][j].p_hole
             neighbors=get_neighbors(temp_cell,grid,True)
             print(neighbors)
             for n in neighbors:
@@ -762,7 +762,7 @@ def calculate_prob(grid):
                 m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*len(neighbors))
                 h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*len(neighbors))
                 #print(n)
-            p_prob=n.p_hole
+            #p_prob=n.p_hole
             grid.grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
             w_prob=0
             m_prob=0
