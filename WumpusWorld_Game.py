@@ -753,7 +753,6 @@ def calculate_prob(grid):
             p_prob += (1-1/PLAYER_NUM_UNITS) * p_prob
             neighbors=get_neighbors(temp_cell,grid,True)
             print(neighbors)
-            return
             for n in neighbors:
                 # if FRESH:
                 #     n.p_wumpus = 1/len(neighbors)
