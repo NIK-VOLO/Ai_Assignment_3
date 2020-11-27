@@ -774,9 +774,24 @@ def calculate_prob(grid):
     FRESH = False
 
 
-#returns double
-def calculate_PO(grid):
-    return 0
+#returns array of observation probabilities for each type
+# 0:Mage, 1:WUMP, 2:Hero, 3:Pit
+def calculate_PO(grid,cell):
+    prob_array = [0.0,0.0,0.0,0.0]
+    neighbors = get_neighbors(cell, grid)
+    #print(neighbors)
+    for n in neighbors:
+        for i in range(4):
+            if i == 0:
+                prob_array[i] = prob_array[i] + n.p_mage
+            if i == 1:
+                prob_array[i] = prob_array[i] + n.p_wumpus
+            if i == 2:
+                prob_array[i] = prob_array[i] + n.p_mage
+            if i == 3:
+                prob_array[i] = prob_array[i] + n.p_hole
+    print(prob_array)
+    return prob_array
 
 
 #returns double
@@ -881,6 +896,7 @@ grid.draw_map()
 
 #prob_dist(grid)
 #calculate_prob(grid)
+calculate_PO(grid,grid.grid[0][0])
 
 while is_running:
     time_delta = clock.tick(60)/1000.0
