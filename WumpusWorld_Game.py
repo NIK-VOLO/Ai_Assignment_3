@@ -31,19 +31,22 @@ manager = pygame_gui.UIManager((WIN_X, WIN_Y))
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** GLOBAL VARIABLES  ******
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+D_MOD = 2
 CLICKED_POS = (-1, -1)
 LAST_CLICKED = CLICKED_POS
-NUM_SELECTED = 0
+NUM_SELECTED = 0 # Keeps track of the number of each unit type ==> 0:Mage, 1:WUMP, 2:HERO (player side)
 # QUEUE TO KEEP TRACK OF CONSECUTIVE SELECTS
 PLAYER_SELECTIONS = queue.Queue(3)
 PLAYER_NUM_UNITS = 0
+UNITS = [D_MOD] * 3
+print(UNITS)
 CPU_NUM_UNITS = 0
 VICTORY_TEXT = "Game In Progress..."
-D_MOD = 2
 p_queue = []
 heapq.heapify(p_queue)
 FOG = True
 FRESH = True
+
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** GAME GRID FUNCTIONS  ******
@@ -133,7 +136,7 @@ class Grid:
         background.fill((0,0,0))
         self.init_grid()
         self.draw_map()
-        calculate_prob(self)
+        #calculate_prob(self)
 
 # --------------------------------------------------------------------
 
@@ -246,6 +249,7 @@ def player_move_unit(grid, event):
     global PLAYER_NUM_UNITS
     global CPU_NUM_UNITS
     global VICTORY_TEXT
+    global UNITS
     # Get the row and column of the clicked positin on game board
     if event.type == pygame.MOUSEBUTTONUP:
         pos = pygame.mouse.get_pos()
@@ -296,6 +300,8 @@ def player_move_unit(grid, event):
                     pass
                 # both pieces die
                 elif code==-2:
+                    UNITS[p_piece.ctype-1] -= 1 # Decrements the amount of units of a particular type
+                    print(f'UNITS: {UNITS}')
                     t_piece.ctype=Ctype.EMPTY
                     p_piece.ctype=Ctype.EMPTY
                     PLAYER_NUM_UNITS -= 1
@@ -309,6 +315,8 @@ def player_move_unit(grid, event):
                 # p_piece dies
                 elif code==-1:
                     print('here')
+                    UNITS[p_piece.ctype-1] -= 1
+                    print(f'UNITS: {UNITS}')
                     p_piece.ctype=Ctype.EMPTY
                     print(p_piece)
                     PLAYER_NUM_UNITS -= 1
@@ -357,6 +365,7 @@ def player_move_unit(grid, event):
                 VICTORY_TEXT = check_win()
 
                 #update_probs(grid)
+                calculate_prob(grid)
                 return
             else:
                 print("select another to move")
