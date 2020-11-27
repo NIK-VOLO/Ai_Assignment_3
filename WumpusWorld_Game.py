@@ -278,6 +278,7 @@ def player_move_unit(grid, event):
 
 
             if NUM_SELECTED == 2:
+                calculate_prob(grid)
                 print("CONFIRMED MOVE")
                 #cell.draw(background)
                 # Get the two cells from the queue
@@ -365,7 +366,6 @@ def player_move_unit(grid, event):
                 VICTORY_TEXT = check_win()
 
                 #update_probs(grid)
-                calculate_prob(grid)
                 return
             else:
                 print("select another to move")
@@ -494,7 +494,7 @@ def distance_manhat(p1, p2):
 #             neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
 #     return neighbors
 
-def get_neighbors(cell, grid, maximizingPlayer):
+def get_neighbors(cell, grid):
     global D_MOD
     neighbors = []
     board_size = D_MOD * 3
@@ -506,16 +506,10 @@ def get_neighbors(cell, grid, maximizingPlayer):
             if(cell.col-1+i > board_size -1 or cell.col-1+i < 0 or cell.row-1+j > board_size -1 or cell.row-1+j < 0):
                 #print(f"({i},{j}) OUT OF BOUNDS")
                 continue
-            #Check maximizingPlayer:
-            # Assume player is maximizingPlayer
-            if not maximizingPlayer:
-                if 1 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 3:
-                    #print(f"({i},{j}) IS A MAXimizingPlayer FRIENDLY PIECE (ignore)")
-                    continue
-            else:
-                if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
-                    #print(f"({i},{j}) IS A MINImizingPlayer FRIENDLY PIECE (ignore)")
-                    continue
+            # if(grid.grid[cell.col-1+i][cell.row-1+j].p_hole==1 or grid.grid[cell.col-1+i][cell.row-1+j].p_mage==1 or grid.grid[cell.col-1+i][cell.row-1+j].p_wumpus==1 or grid.grid[cell.col-1+i][cell.row-1+j].p_hero==1):
+            #     continue
+            if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
+                continue
             #print(f"({i},{j}) is VALID")
             neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
     return neighbors
@@ -760,16 +754,16 @@ def calculate_prob(grid):
             m_prob += (1-1/PLAYER_NUM_UNITS) * grid.grid[i][j].p_mage
             h_prob += (1-1/PLAYER_NUM_UNITS) * grid.grid[i][j].p_hero
             p_prob += grid.grid[i][j].p_hole
-            neighbors=get_neighbors(temp_cell,grid,True)
+            neighbors=get_neighbors(temp_cell,grid)
             #print(neighbors)
             for n in neighbors:
                 # if FRESH:
                 #     n.p_wumpus = 1/len(neighbors)
                 #     n.p_mage = 1/len(neighbors)
                 #     n.p_hero = 1/len(neighbors)
-                w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*len(neighbors))
-                m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*len(neighbors))
-                h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*len(neighbors))
+                w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*len(get_neighbors(n,grid)))
+                m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*len(get_neighbors(n,grid)))
+                h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*len(get_neighbors(n,grid)))
                 print(n)
             #p_prob=n.p_hole
             grid.grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
@@ -780,6 +774,14 @@ def calculate_prob(grid):
     FRESH = False
 
 
+#returns double
+def calculate_PO(grid):
+    return 0
+
+
+#returns double
+def calculate_POW(grid):
+    return 0
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** UI ELEMENTS  ******
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
