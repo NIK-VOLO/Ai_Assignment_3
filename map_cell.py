@@ -12,6 +12,7 @@ PURPLE=(128,0,128)
 YELLOW =(255, 230, 0)
 GREEN = (0, 255, 26)
 class Ctype(IntEnum):
+    Unknown=-1
     MAGE=1
     WUMPUS=2
     KNIGHT=3

@@ -9,6 +9,7 @@ from itertools import chain
 import time
 import math
 from bitarray import bitarray
+import copy
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** GAME WINDOW INITIALIZATION  ******
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -796,7 +797,62 @@ def calculate_PO(grid,cell):
 
 #returns double
 def calculate_POW(grid):
-    return 0
+    new_grid=copy.deepcopy(grid)
+    p_w=0
+    p_m=0
+    p_h=0
+    p_p=0
+    w=0
+    m=0
+    h=0
+    p=0
+    for t in range(4):
+        for i in range(len(grid[0])):
+            for j in range(len(grid)):
+                tempCell=grid.grid[i][j]
+                if not 4<= grid.grid[i][j].ctype<=6:
+                    #calculations for wumpus
+                    if t==0:
+                        p_w=grid[i][j].p_wumpus*(w-1)/w
+                        p_m=grid[i][j].p_mage*(1-grid[i][j].p_mage)
+                        p_h=grid[i][j].p_hero*(1-grid[i][j].p_hero)
+                        p_p=grid[i][j].p_hole*(1-grid[i][j].p_hole)
+                    elif t==1:
+                        p_w=grid[i][j].p_wumpus*(1-grid[i][j].p_wumpus)
+                        p_m=grid[i][j].p_mage*(m-1)/m
+                        p_h=grid[i][j].p_hero*(1-grid[i][j].p_hero)
+                        p_p=grid[i][j].p_hole*(1-grid[i][j].p_hole)
+                    elif t==2:
+                        p_w=grid[i][j].p_wumpus*(1-grid[i][j].p_wumpus)
+                        p_m=grid[i][j].p_mage*(1-grid[i][j].p_mage)
+                        p_h=grid[i][j].p_hero*(h-1)/h
+                        p_p=grid[i][j].p_hole*(1-grid[i][j].p_hole)
+                    elif t==3:
+                        p_w=grid[i][j].p_wumpus*(1-grid[i][j].p_wumpus)
+                        p_m=grid[i][j].p_mage*(1-grid[i][j].p_mage)
+                        p_h=grid[i][j].p_hero*(1-grid[i][j].p_hero)
+                        p_p=grid[i][j].p_hole*(p-1)/p
+                    new_grid[i][j].set_probabilities(p_p,p_w,p_h,p_m)
+        for i in range(len(grid[0])):
+            for j in range(len(grid)):
+                if not 4<= grid[i][j].ctype<=6:
+                    tempProbs=[new_grid[i][j].p_hole,new_grid[i][j].p_wumpus,new_grid[i][j].p_hero,new_grid[i][j].p_mage]
+                    if t==0:
+                        new_grid[i][j].set_probabilities(0,1,0,0)
+                    elif t==1:
+                        new_grid[i][j].set_probabilities(0,0,0,1)
+                    elif t==2:
+                        new_grid[i][j].set_probabilities(0,0,1,0)
+                    elif t==3:
+                        new_grid[i][j].set_probabilities(1,0,0,0)
+                newProbs=calculate_POW(grid)
+                grid[i][j].set_probabilities(tempProbs[0],tempProbs[1],tempProbs[2],tempProbs[3])
+
+
+
+
+
+    return grid
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** UI ELEMENTS  ******
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
