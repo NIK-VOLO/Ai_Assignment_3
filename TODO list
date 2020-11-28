@@ -1,0 +1,6 @@
+1. Finish calculate_PO Method
+2. Fix calculate_prob so that it displays correct probabilities for the beginning?
+2a. Found the bug, have to make a copy of the grid using deepcopy. However, this causes a bug with pygame.
+3. Somehow figure out how to accurately test that calculating probabilities with observations is working correctly.
+4. Make the cpu make good moves? (Heuristics?)
+5. 

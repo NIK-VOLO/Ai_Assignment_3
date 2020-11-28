@@ -396,8 +396,6 @@ def get_piece_list(str_grid, maximizingPlayer):
                     pieces.append((i,j))
     return pieces
 
-def distance_manhat(p1, p2):
-    return round(abs(p1[0] - p2[0]) + abs(p1[1] - p2[1]), 2)
 # Gets the cells around the piece that have valid moves
 # --> If the cell has a pit, we assume that it's a bad move and don't add it to the list
 # --> Depending on if the turn is maximizingPlayer or not, add cells containing enemy units but ignore friendly units
@@ -675,9 +673,11 @@ def prob_dist(grid):
     print(prob)
     return prob
 
+
 def calculate_prob(grid):
     global D_MOD
     global FRESH
+    #output_grid=copy.deepcopy(grid.grid)<---------------This line causes a bug
     w_prob=0
     m_prob=0
     h_prob=0
@@ -686,10 +686,10 @@ def calculate_prob(grid):
     for i in range(axis_dim):
         for j in range(axis_dim):
             temp_cell=grid.grid[i][j]
-            w_prob += (1-1/PLAYER_NUM_UNITS) * grid.grid[i][j].p_wumpus
-            m_prob += (1-1/PLAYER_NUM_UNITS) * grid.grid[i][j].p_mage
-            h_prob += (1-1/PLAYER_NUM_UNITS) * grid.grid[i][j].p_hero
-            p_prob += grid.grid[i][j].p_hole
+            w_prob = (1-(1/PLAYER_NUM_UNITS)) * grid.grid[i][j].p_wumpus
+            m_prob = (1-(1/PLAYER_NUM_UNITS)) * grid.grid[i][j].p_mage
+            h_prob = (1-(1/PLAYER_NUM_UNITS)) * grid.grid[i][j].p_hero
+            p_prob = grid.grid[i][j].p_hole
             neighbors=get_neighbors(temp_cell,grid)
             #print(neighbors)
             for n in neighbors:
@@ -734,7 +734,12 @@ def calculate_PO(grid,cell):
 # This function is used to calculate P(O|W_XY) for each of the cells.
 # It does this by setting W,M,P,H _XY to true, then normalizes the remaining cells
 # The funciton then returns the P(O|)
+#Current Issues:
+#   1. What would happen if the number of pieces of a certain type is 0? This results in a divide by 0 error. Do we just skip all calculations?
+#   2. Everything is untested, so no idea if any of this works.
+#   3. 
 def calculate_POW(grid):
+    #intermediate grid used to store placeholder values which will then be used in calculate_POW method.
     new_grid=copy.deepcopy(grid)
     output_grid=copy.deepcopy(grid)
     p_w=0
@@ -749,30 +754,33 @@ def calculate_POW(grid):
     h=0
     p=0
     #-----------------------------------------------------------------
+    # T is for calculations for each of the types: pit, wumpus, hero, mage
+    # This loops goes through the grid, calculates the value of the specific type for 
+    # all of the cells, and then repeats for every single type
     for t in range(4):
         for i in range(len(grid[0])):
             for j in range(len(grid)):
                 tempCell=grid.grid[i][j]
                 if not 4<= grid.grid[i][j].ctype<=6:
-                    #calculations for wumpus
+                    # Calculations for wumpus
                     if t==1:
                         p_w=grid[i][j].p_wumpus*(w-1)/w
                         p_m=grid[i][j].p_mage*(1-grid[i][j].p_mage)
                         p_h=grid[i][j].p_hero*(1-grid[i][j].p_hero)
                         p_p=grid[i][j].p_hole*(1-grid[i][j].p_hole)
-                    #calculations for mage
+                    # Calculations for mage
                     elif t==3:
                         p_w=grid[i][j].p_wumpus*(1-grid[i][j].p_wumpus)
                         p_m=grid[i][j].p_mage*(m-1)/m
                         p_h=grid[i][j].p_hero*(1-grid[i][j].p_hero)
                         p_p=grid[i][j].p_hole*(1-grid[i][j].p_hole)
-                    #calculations for hero
+                    # Calculations for hero
                     elif t==2:
                         p_w=grid[i][j].p_wumpus*(1-grid[i][j].p_wumpus)
                         p_m=grid[i][j].p_mage*(1-grid[i][j].p_mage)
                         p_h=grid[i][j].p_hero*(h-1)/h
                         p_p=grid[i][j].p_hole*(1-grid[i][j].p_hole)
-                    #calculations for pit?
+                    # Calculations for pit?
                     elif t==0:
                         p_w=grid[i][j].p_wumpus*(1-grid[i][j].p_wumpus)
                         p_m=grid[i][j].p_mage*(1-grid[i][j].p_mage)
@@ -785,25 +793,26 @@ def calculate_POW(grid):
                     #This stores the correct probabilities for when we change the probabilities 1 at a time
                     tempProbs=[new_grid[i][j].p_hole,new_grid[i][j].p_wumpus,new_grid[i][j].p_hero,new_grid[i][j].p_mage]
                     if t==1:
-                        new_grid[i][j].set_probabilities(0,1,0,0)
                         outputProbs=calculate_PO(new_grid,new_grid[i][j])
+                        new_grid[i][j].set_probabilities(0,1,0,0)
                         output_grid[i][j].p_wumpus=outputProbs[1]
                     elif t==3:
-                        new_grid[i][j].set_probabilities(0,0,0,1)
                         outputProbs=calculate_PO(new_grid,new_grid[i][j])
+                        new_grid[i][j].set_probabilities(0,0,0,1)
                         output_grid[i][j].p_mage=outputProbs[0]
                     elif t==2:
-                        new_grid[i][j].set_probabilities(0,0,1,0)
                         outputProbs=calculate_PO(new_grid,new_grid[i][j])
+                        new_grid[i][j].set_probabilities(0,0,1,0)
                         output_grid[i][j].p_hero=outputProbs[2]
                     elif t==0:
-                        new_grid[i][j].set_probabilities(1,0,0,0)
                         outputProbs=calculate_PO(new_grid,new_grid[i][j])
+                        new_grid[i][j].set_probabilities(1,0,0,0)
                         output_grid[i][j].p_hole=outputProbs[3]
                     #This will restore to the temporary probabilities from those that were stored above
                     new_grid[i][j].set_probabilities(tempProbs[0],tempProbs[1],tempProbs[2],tempProbs[3])
 # For PO method: 0:Mage, 1:WUMP, 2:Hero, 3:Pit
     return output_grid
+
 
 def calculate_observations(grid):
     output_grid=copy.deepcopy(grid)
@@ -820,9 +829,14 @@ def calculate_observations(grid):
 
 
 
+# This function will look at the current board probabilities and will make a move
+# that will maximize cpu_pieces-player_pieces.
+# Similar to heuristic from assignment 2?
+def cpu_make_move(grid):
 
 
 
+    return grid
 
 
 
@@ -961,6 +975,7 @@ while is_running:
             pos = pygame.mouse.get_pos()
             col, row = get_clicked_pos(grid, pos)
             if col < 3*D_MOD and row < 3*D_MOD:
+                #print(get_neighbors(grid.grid[col][row],grid))
                 print(grid.grid[col][row])
 
 
