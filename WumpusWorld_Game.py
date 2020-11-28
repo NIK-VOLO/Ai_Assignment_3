@@ -58,6 +58,14 @@ class Grid:
         self.grid = [[None for _ in range(
             self.axis_dim)] for _ in range(self.axis_dim)]
 
+
+    def copy(self):
+        output_grid=[[None for _ in range(self.axis_dim)]for _ in range(self.axis_dim)]
+        for i in range(self.axis_dim):
+            for j in range(self.axis_dim):
+                output_grid[j][i]=self.grid[j][i].copy()
+        print("RETURNED COPY GRID")
+        return output_grid
 # --------------------------------------------------------------------
     def init_grid(self):
         global PLAYER_NUM_UNITS
@@ -137,7 +145,6 @@ class Grid:
         background.fill((0,0,0))
         self.init_grid()
         self.draw_map()
-        #calculate_prob(self)
 
 # --------------------------------------------------------------------
 
@@ -279,14 +286,16 @@ def player_move_unit(grid, event):
 
 
             if NUM_SELECTED == 2:
-                calculate_prob(grid)
+                grid.grid=calculate_prob(grid)
                 print("CONFIRMED MOVE")
                 #cell.draw(background)
                 # Get the two cells from the queue
                 p_piece = PLAYER_SELECTIONS.get()
+                p_piece=grid.grid[p_piece.col][p_piece.row]
                 p_piece.selected = False
                 NUM_SELECTED -=1
                 t_piece = PLAYER_SELECTIONS.get()
+                t_piece=grid.grid[t_piece.col][t_piece.row]
                 t_piece.selected = False
                 NUM_SELECTED -=1
 
@@ -677,7 +686,7 @@ def prob_dist(grid):
 def calculate_prob(grid):
     global D_MOD
     global FRESH
-    #output_grid=copy.deepcopy(grid.grid)<---------------This line causes a bug
+    output_grid=grid.copy()
     w_prob=0
     m_prob=0
     h_prob=0
@@ -700,15 +709,17 @@ def calculate_prob(grid):
                 w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*len(get_neighbors(n,grid)))
                 m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*len(get_neighbors(n,grid)))
                 h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*len(get_neighbors(n,grid)))
-                print(n)
+                #print(n)
             #p_prob=n.p_hole
-            grid.grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
+            #output_grid[i][j].p_wumpus=w_prob
+            output_grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
             w_prob=0
             m_prob=0
             h_prob=0
             p_prob=0
     FRESH = False
-
+    print("got to output grid")
+    return output_grid
 
 #returns array of observation probabilities for each type
 # 0:Mage, 1:WUMP, 2:Hero, 3:Pit
@@ -939,7 +950,7 @@ grid.draw_map()
 
 
 #prob_dist(grid)
-#calculate_prob(grid)
+
 calculate_PO(grid,grid.grid[0][0])
 
 while is_running:

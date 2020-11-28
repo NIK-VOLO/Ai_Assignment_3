@@ -46,6 +46,19 @@ class Cell:
         self.p_mage=0
         #self.observe_array[0] = 1
         #print(self.observe_array)
+    def copy(self):
+        cell=Cell(self.col,self.row,self.size,1,self.ctype)
+        cell.selected=self.selected
+        cell.select_opacity=self.select_opacity
+        cell.fog=self.fog
+        cell.fog_opacity=self.fog_opacity
+        cell.observe_array=self.observe_array
+        cell.p_hole=self.p_hole
+        cell.p_mage=self.p_mage
+        cell.p_wumpus=self.p_wumpus
+        cell.p_hero=self.p_hero
+        return cell
+
 
         #self.font = pygame.font.SysFont(NONE, 12)
     def set_probabilities(self,hole,wumpus,hero,mage):
