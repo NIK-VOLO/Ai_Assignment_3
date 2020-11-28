@@ -292,7 +292,7 @@ def player_move_unit(grid, event):
 
                 code=p_piece.fight(t_piece)
                 print(f'Code:{code}')
-                # No battle, swap swap cells
+                # No battle, swap cells
                 if code==0:
                     temp_type = t_piece.ctype
                     t_piece.ctype = p_piece.ctype
@@ -379,71 +379,6 @@ def is_terminal(node):
     return False
 
 
-# Returns the heuristic value that is used to sort the board states in the priority queue
-
-
-
-# Calculates the average 'unit position' for each player, then calculates the MANHATTAN distance
-def h_distance_avg(node, maximizingPlayer):
-    global D_MOD
-    p_list=get_piece_list(node[0],not maximizingPlayer)
-    cp_list =get_piece_list(node[0], maximizingPlayer)
-    average_dist = 0
-    #print(p_list)
-    #print(cp_list)
-    avg_p_point_x = 0
-    avg_p_point_y = 0
-    avg_cp_point_x = 0
-    avg_cp_point_y = 0
-    avg_p_point = (0,0)
-    avg_cp_point = (0,0)
-    for i in range(len(p_list)):
-        avg_p_point_x += p_list[i][0]
-        avg_p_point_y += p_list[i][1]
-        pass
-    for j in range(len(cp_list)):
-        avg_cp_point_x = cp_list[j][0]
-        avg_cp_point_y = cp_list[j][1]
-        # print(f"{p_list[i]} -- {cp_list[j]}")
-        pass
-    if(len(p_list) > 0):
-        avg_p_point = (avg_p_point_x/len(p_list),avg_p_point_y/len(p_list))
-    if(len(cp_list) > 0):
-        avg_cp_point = (avg_cp_point_x/len(cp_list),avg_cp_point_y/len(cp_list))
-    #print(f"PLAYER {avg_p_point} -- CPU {avg_cp_point}")
-
-    #MANHATTAN DISTACE:
-    result = round(math.sqrt(pow(avg_p_point[0] - avg_cp_point[0],2) + pow(avg_p_point[1] - avg_cp_point[1],2)), 2)
-    #print(f"MANHATTAN DISTANCE OF AVERAGE PTS --> {result}")
-
-
-    board_size=D_MOD*3
-    return board_size/result
-
-# Sum of the distances of each piece
-def h_sum_dist(node, maximizingPlayer):
-    global D_MOD
-    base = 2 * D_MOD
-    p_list=get_piece_list(node[0],False)
-    cp_list =get_piece_list(node[0], True)
-    dist_sum = 0
-    #print(p_list)
-    for p in p_list:
-        #print(p, end = "\t")
-        for cp in cp_list:
-            #print(cp, end = ', ')
-            dist_sum += distance_manhat(p,cp)
-    #print(f"DIST_SUM = {dist_sum}")
-    result = dist_sum / (1 + (len(p_list) + (len(cp_list)))*(3 * D_MOD))
-    diff = h_val1(node, maximizingPlayer)
-    modifier = 1/(1 + abs(diff))
-    #print(f"MODIFIER = {modifier}")
-    if diff >= 0:
-        #return base - (result * modifier)
-        return -result
-    else:
-        #return base + result * modifier
-        return result
 
 # Reads the string board and returns the  coordinate pairs of the pieces of the current player
 def get_piece_list(str_grid, maximizingPlayer):
@@ -795,39 +730,50 @@ def calculate_PO(grid,cell):
     return prob_array
 
 
-#returns double
+# returns double
+# This function is used to calculate P(O|W_XY) for each of the cells.
+# It does this by setting W,M,P,H _XY to true, then normalizes the remaining cells
+# The funciton then returns the P(O|)
 def calculate_POW(grid):
     new_grid=copy.deepcopy(grid)
+    output_grid=copy.deepcopy(grid)
     p_w=0
     p_m=0
     p_h=0
     p_p=0
+    #-----------------------------------------------------------------
+    # These will be the number of each piece that the opponent has left
+    # Don't know how to get this info yet
     w=0
     m=0
     h=0
     p=0
+    #-----------------------------------------------------------------
     for t in range(4):
         for i in range(len(grid[0])):
             for j in range(len(grid)):
                 tempCell=grid.grid[i][j]
                 if not 4<= grid.grid[i][j].ctype<=6:
                     #calculations for wumpus
-                    if t==0:
+                    if t==1:
                         p_w=grid[i][j].p_wumpus*(w-1)/w
                         p_m=grid[i][j].p_mage*(1-grid[i][j].p_mage)
                         p_h=grid[i][j].p_hero*(1-grid[i][j].p_hero)
                         p_p=grid[i][j].p_hole*(1-grid[i][j].p_hole)
-                    elif t==1:
+                    #calculations for mage
+                    elif t==3:
                         p_w=grid[i][j].p_wumpus*(1-grid[i][j].p_wumpus)
                         p_m=grid[i][j].p_mage*(m-1)/m
                         p_h=grid[i][j].p_hero*(1-grid[i][j].p_hero)
                         p_p=grid[i][j].p_hole*(1-grid[i][j].p_hole)
+                    #calculations for hero
                     elif t==2:
                         p_w=grid[i][j].p_wumpus*(1-grid[i][j].p_wumpus)
                         p_m=grid[i][j].p_mage*(1-grid[i][j].p_mage)
                         p_h=grid[i][j].p_hero*(h-1)/h
                         p_p=grid[i][j].p_hole*(1-grid[i][j].p_hole)
-                    elif t==3:
+                    #calculations for pit?
+                    elif t==0:
                         p_w=grid[i][j].p_wumpus*(1-grid[i][j].p_wumpus)
                         p_m=grid[i][j].p_mage*(1-grid[i][j].p_mage)
                         p_h=grid[i][j].p_hero*(1-grid[i][j].p_hero)
@@ -836,23 +782,51 @@ def calculate_POW(grid):
         for i in range(len(grid[0])):
             for j in range(len(grid)):
                 if not 4<= grid[i][j].ctype<=6:
+                    #This stores the correct probabilities for when we change the probabilities 1 at a time
                     tempProbs=[new_grid[i][j].p_hole,new_grid[i][j].p_wumpus,new_grid[i][j].p_hero,new_grid[i][j].p_mage]
-                    if t==0:
+                    if t==1:
                         new_grid[i][j].set_probabilities(0,1,0,0)
-                    elif t==1:
+                        outputProbs=calculate_PO(new_grid,new_grid[i][j])
+                        output_grid[i][j].p_wumpus=outputProbs[1]
+                    elif t==3:
                         new_grid[i][j].set_probabilities(0,0,0,1)
+                        outputProbs=calculate_PO(new_grid,new_grid[i][j])
+                        output_grid[i][j].p_mage=outputProbs[0]
                     elif t==2:
                         new_grid[i][j].set_probabilities(0,0,1,0)
-                    elif t==3:
+                        outputProbs=calculate_PO(new_grid,new_grid[i][j])
+                        output_grid[i][j].p_hero=outputProbs[2]
+                    elif t==0:
                         new_grid[i][j].set_probabilities(1,0,0,0)
-                newProbs=calculate_POW(grid)
-                grid[i][j].set_probabilities(tempProbs[0],tempProbs[1],tempProbs[2],tempProbs[3])
+                        outputProbs=calculate_PO(new_grid,new_grid[i][j])
+                        output_grid[i][j].p_hole=outputProbs[3]
+                    #This will restore to the temporary probabilities from those that were stored above
+                    new_grid[i][j].set_probabilities(tempProbs[0],tempProbs[1],tempProbs[2],tempProbs[3])
+# For PO method: 0:Mage, 1:WUMP, 2:Hero, 3:Pit
+    return output_grid
+
+def calculate_observations(grid):
+    output_grid=copy.deepcopy(grid)
+    o_given_type=calculate_POW(grid)
+    for i in range (grid[0]):
+        for j in range(grid):
+            p_wumpus=grid[i][j].p_wumpus*o_given_type[i][j].p_wumpus/calculate_PO(grid,grid[i][j])
+            p_mage=grid[i][j].p_mage*o_given_type[i][j].p_mage/calculate_PO(grid,grid[i][j])
+            p_pit=grid[i][j].p_hole*o_given_type[i][j].p_hole/calculate_PO(grid,grid[i][j])
+            p_hero=grid[i][j].p_hero*o_given_type[i][j].p_hero/calculate_PO(grid,grid[i][j])
+            output_grid[i][j].set_probabilities(p_pit,p_wumpus,p_hero,p_mage)
+    return output_grid
 
 
 
 
 
-    return grid
+
+
+
+
+
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # ***** UI ELEMENTS  ******
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
