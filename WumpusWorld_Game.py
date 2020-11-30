@@ -751,8 +751,8 @@ def calculate_PO(grid,cell):
 #   3. 
 def calculate_POW(grid):
     #intermediate grid used to store placeholder values which will then be used in calculate_POW method.
-    new_grid=copy.deepcopy(grid)
-    output_grid=copy.deepcopy(grid)
+    new_grid=grid.copy()
+    output_grid=grid.copy()
     p_w=0
     p_m=0
     p_h=0
