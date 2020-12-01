@@ -340,7 +340,7 @@ def player_move_unit(grid, event):
 
 
                 grid.grid=calculate_prob(grid)
-                #grid.grid=calculate_observations(grid)
+                grid.grid=calculate_observations(grid)
 
 
                 str_board=grid.gen_string_board()
@@ -748,7 +748,71 @@ def calculate_PO(grid,cell):
     print(prob_array)
     return prob_array
 
-
+def calculate_POW2(grid,cell):
+    new_grid=Grid(D_MOD)
+    new_grid.grid=grid.copy()
+    output_grid=Grid(D_MOD)
+    output_grid.grid=grid.copy()
+    outputs=list()
+    # Keeps track of the number of each unit type ==> 0:Mage, 1:WUMP, 2:HERO (player side)
+    p_w=0
+    p_m=0
+    p_h=0
+    p_p=0
+    #-----------------------------------------------------------------
+    # These will be the number of each piece that the opponent has left
+    # Don't know how to get this info yet
+    w=UNITS[1]
+    m=UNITS[0]
+    h=UNITS[2]
+    p=((grid.axis_dim/3)-1)*(grid.axis_dim-2)
+    #-----------------------------------------------------------------
+    # T is for calculations for each of the types: pit, wumpus, hero, mage
+    # This loops goes through the grid, calculates the value of the specific type for 
+    # all of the cells, and then repeats for every single type
+    for t in range(4):
+        for i in range(len(grid.grid[0])):
+            for j in range(len(grid.grid)):
+                if(i==cell.col and j==cell.row):
+                    continue
+                if t==1:
+                    p_w=grid.grid[i][j].p_wumpus*(w-1)/w
+                    p_m=grid.grid[i][j].p_mage*(1-cell.p_mage)
+                    p_h=grid.grid[i][j].p_hero*(1-cell.p_hero)
+                    p_p=grid.grid[i][j].p_hole*(1-cell.p_hole)
+                elif t==0:
+                    p_w=grid.grid[i][j].p_wumpus*(1-cell.p_wumpus)
+                    p_m=grid.grid[i][j].p_mage*(m-1)/m
+                    p_h=grid.grid[i][j].p_hero*(1-cell.p_hero)
+                    p_p=grid.grid[i][j].p_hole*(1-cell.p_hole)
+                elif t==2:
+                    p_w=grid.grid[i][j].p_wumpus*(1-cell.p_wumpus)
+                    p_m=grid.grid[i][j].p_mage*(1-cell.p_mage)
+                    p_h=grid.grid[i][j].p_hero*(h-1)/h
+                    p_p=grid.grid[i][j].p_hole*(1-cell.p_hole)
+                elif t==3:
+                    p_w=grid.grid[i][j].p_wumpus*(1-cell.p_wumpus)
+                    p_m=grid.grid[i][j].p_mage*(1-cell.p_mage)
+                    p_h=grid.grid[i][j].p_hero*(1-cell.p_hero)
+                    p_p=grid.grid[i][j].p_hole*(p-1)/p
+                new_grid.grid[i][j].set_probabilities(p_p,p_w,p_h,p_m)
+        if t==1:
+            new_grid.grid[cell.col][cell.row].set_probabilities(0,1,0,0)
+            po=calculate_PO(new_grid,new_grid.grid[cell.col][cell.row])
+            outputs.append(po[1])
+        elif t==0:
+            new_grid.grid[cell.col][cell.row].set_probabilities(0,0,0,1)
+            po=calculate_PO(new_grid,new_grid.grid[cell.col][cell.row])
+            outputs.append(po[0])
+        elif t==2:
+            new_grid.grid[cell.col][cell.row].set_probabilities(0,0,1,0)
+            po=calculate_PO(new_grid,new_grid.grid[cell.col][cell.row])
+            outputs.append(po[2])
+        elif t==3:
+            new_grid.grid[cell.col][cell.row].set_probabilities(1,0,0,0)
+            po=calculate_PO(new_grid,new_grid.grid[cell.col][cell.row])
+            outputs.append(po[3])
+    return outputs
 # returns double
 # This function is used to calculate P(O|W_XY) for each of the cells.
 # It does this by setting W,M,P,H _XY to true, then normalizes the remaining cells
@@ -776,7 +840,7 @@ def calculate_POW(grid):
     w=UNITS[1]
     m=UNITS[0]
     h=UNITS[2]
-    p=(grid.axis_dim/3)-1
+    p=((grid.axis_dim/3)-1)*(grid.axis_dim-2)
     #-----------------------------------------------------------------
     # T is for calculations for each of the types: pit, wumpus, hero, mage
     # This loops goes through the grid, calculates the value of the specific type for 
@@ -813,50 +877,55 @@ def calculate_POW(grid):
                     new_grid[i][j].set_probabilities(p_p,p_w,p_h,p_m)
         for i in range(len(grid.grid[0])):
             for j in range(len(grid.grid)):
-                if not 4<= grid.grid[i][j].ctype<=6:
-                    #This stores the correct probabilities for when we change the probabilities 1 at a time
-                    tempProbs=[new_grid[i][j].p_hole,new_grid[i][j].p_wumpus,new_grid[i][j].p_hero,new_grid[i][j].p_mage]
-                    if t==1:
-                        new_grid[i][j].set_probabilities(0,1,0,0)
-                        outputProbs=calculate_PO(new_gridO,new_grid[i][j])
-                        output_grid[i][j].p_wumpus=outputProbs[1]
-                    elif t==3:
-                        new_grid[i][j].set_probabilities(0,0,0,1)
-                        outputProbs=calculate_PO(new_gridO,new_grid[i][j])
-                        output_grid[i][j].p_mage=outputProbs[0]
-                    elif t==2:
-                        new_grid[i][j].set_probabilities(0,0,1,0)
-                        outputProbs=calculate_PO(new_gridO,new_grid[i][j])
-                        output_grid[i][j].p_hero=outputProbs[2]
-                    elif t==0:
-                        new_grid[i][j].set_probabilities(1,0,0,0)
-                        outputProbs=calculate_PO(new_gridO,new_grid[i][j])
-                        output_grid[i][j].p_hole=outputProbs[3]
-                    #This will restore to the temporary probabilities from those that were stored above
-                    new_grid[i][j].set_probabilities(tempProbs[0],tempProbs[1],tempProbs[2],tempProbs[3])
+                #if not 4<= grid.grid[i][j].ctype<=6:
+                #This stores the correct probabilities for when we change the probabilities 1 at a time
+                tempProbs=[new_grid[i][j].p_hole,new_grid[i][j].p_wumpus,new_grid[i][j].p_hero,new_grid[i][j].p_mage]
+                if t==1:
+                    new_grid[i][j].set_probabilities(0,1,0,0)
+                    new_gridO.grid=new_grid
+                    outputProbs=calculate_PO(new_gridO,new_gridO.grid[i][j])
+                    output_grid[i][j].p_wumpus=outputProbs[1]
+                elif t==3:
+                    new_grid[i][j].set_probabilities(0,0,0,1)
+                    new_gridO.grid=new_grid
+                    outputProbs=calculate_PO(new_gridO,new_gridO.grid[i][j])
+                    output_grid[i][j].p_mage=outputProbs[0]
+                elif t==2:
+                    new_grid[i][j].set_probabilities(0,0,1,0)
+                    new_gridO.grid=new_grid
+                    outputProbs=calculate_PO(new_gridO,new_gridO.grid[i][j])
+                    output_grid[i][j].p_hero=outputProbs[2]
+                elif t==0:
+                    new_grid[i][j].set_probabilities(1,0,0,0)
+                    new_gridO.grid=new_grid
+                    outputProbs=calculate_PO(new_gridO,new_gridO.grid[i][j])
+                    output_grid[i][j].p_hole=outputProbs[3]
+                #This will restore to the temporary probabilities from those that were stored above
+                new_grid[i][j].set_probabilities(tempProbs[0],tempProbs[1],tempProbs[2],tempProbs[3])
 # For PO method: 0:Mage, 1:WUMP, 2:Hero, 3:Pit
     return output_grid
 
 
 def calculate_observations(grid):
     output_grid=grid.copy()
-    o_given_type=calculate_POW(grid)
     for i in range (len(grid.grid[0])):
         for j in range(len(grid.grid)):
             if grid.grid[i][j].observe_array[0]==1 or grid.grid[i][j].observe_array[1]==1 or grid.grid[i][j].observe_array[2]==1 or grid.grid[i][j].observe_array[3]==1:
                 po=calculate_PO(grid,grid.grid[i][j])
-                p_wumpus=o_given_type[i][j].p_wumpus
-                p_mage=o_given_type[i][j].p_mage
-                p_hero=o_given_type[i][j].p_hero
-                p_pit=o_given_type[i][j].p_hole
+                pow2=calculate_POW2(grid,grid.grid[i][j])
+                p_wumpus=0
+                p_mage=0
+                p_hero=0
+                p_pit=0
                 if po[1]!=0:
-                    p_wumpus=grid.grid[i][j].p_wumpus*o_given_type[i][j].p_wumpus/po[1]
+                    p_wumpus=grid.grid[i][j].p_wumpus*pow2[1]/po[1]
                 if po[0]!=0:
-                    p_mage=grid.grid[i][j].p_mage*o_given_type[i][j].p_mage/po[0]
+                    p_mage=grid.grid[i][j].p_mage*pow2[0]/po[0]
                 if po[3]!=0:
-                    p_pit=grid.grid[i][j].p_hole*o_given_type[i][j].p_hole/po[3]
+                    p_pit=grid.grid[i][j].p_hole*pow2[3]/po[3]
+                    #print(f'FJDKSAL;FJDK;LSAJFD;LSA\t{i},{j},{grid.grid[i][j].p_hole},{o_given_type[i][j].p_hole},{po[3]}')
                 if po[2]!=0:
-                    p_hero=grid.grid[i][j].p_hero*o_given_type[i][j].p_hero/po[2]
+                    p_hero=grid.grid[i][j].p_hero*pow2[2]/po[2]
                 output_grid[i][j].set_probabilities(p_pit,p_wumpus,p_hero,p_mage)
             else:
                 output_grid[i][j].set_probabilities(grid.grid[i][j].p_hole,grid.grid[i][j].p_wumpus,grid.grid[i][j].p_hero,grid.grid[i][j].p_mage)
