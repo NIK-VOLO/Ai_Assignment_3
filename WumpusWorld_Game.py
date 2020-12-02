@@ -340,8 +340,8 @@ def player_move_unit(grid, event):
 
 
                 grid.grid=calculate_prob(grid)
-                grid.grid=calculate_observations(grid)
-
+                #grid.grid=calculate_observations(grid)
+                calc_po3(grid)
 
                 str_board=grid.gen_string_board()
                 grid.convert_string_board(str_board)
@@ -742,11 +742,76 @@ def calculate_PO(grid,cell):
             if i == 1:
                 prob_array[i] = prob_array[i] + n.p_wumpus
             if i == 2:
-                prob_array[i] = prob_array[i] + n.p_mage
+                prob_array[i] = prob_array[i] + n.p_hero
             if i == 3:
                 prob_array[i] = prob_array[i] + n.p_hole
+    return prob_array
+
+# 0:Mage, 1:WUMP, 2:Hero, 3:Pit
+def calculate_PO2(grid,cell):
+    prob_array = [0.0,0.0,0.0,0.0]
+    neighbors = get_neighbors(cell, grid)
+    #print(neighbors)
+    for n in neighbors:
+        if n.observe_array[0]==1 and 4<=n.ctype<=6:
+            prob_array[0] = prob_array[0] + cell.p_mage
+        elif n.observe_array[1]==1 and 4<=n.ctype<=6:
+            prob_array[1] = prob_array[1] + cell.p_wumpus
+        elif n.observe_array[2]==1 and 4<=n.ctype<=6:
+            prob_array[2] = prob_array[2] + cell.p_hero
+        elif n.observe_array[3]==1 and 4<=n.ctype<=6:
+            prob_array[3] = prob_array[3] + cell.p_hole
     print(prob_array)
     return prob_array
+
+# 0:Mage, 1:WUMP, 2:Hero,
+# Currently skipping pit because the logic for pit is slightly different
+def calc_po3(grid):
+    cpu_pieces=get_cpu_pieces(grid)
+    all_neighbors=list()
+    for i in cpu_pieces:
+        current_neighbors=get_neighbors(i,grid)
+        all_neighbors=list(set().union(all_neighbors,current_neighbors))
+    #all neighbors contains list of all neighbors, removing cpu_pieces and duplicates
+    print(all_neighbors)
+    output_grid=grid.copy()
+    return calc_po3_loop1(all_neighbors,output_grid,cpu_pieces)
+    
+#recursive function to iterate through observed cells
+def calc_po3_loop1(neighbors,grid,cpu_pieces,player_pieces):
+    if len(neighbors)==0:
+        if observations_satisfied(cpu_pieces,grid):
+            calc_po3_loop2(grid)
+    else:
+        observations_satisfied(cpu_pieces,grid)
+        cell=neighbors.pop(0)
+        #player pieces ex. =[2,2,2]
+        x=1
+        #check player pieces and add 1 to x for every player piece available
+        for i in range(x): #i is either mage, wumpus, hero, or empty
+            #update playerpieces based on piece i ex.[1,2,2]
+            #upate_grid based on i ex at cell insert piece i
+            calc_po3_loop1(neighbors,grid,cpu_pieces,player_pieces)
+    return
+
+
+
+def observations_satisfied(cpu_pieces,grid):
+    return True
+
+#recusive function to iterate through unobserved cells
+def calc_po3_loop2(grid):
+    return
+
+def get_cpu_pieces(grid):
+    output=list()
+    for i in range(len(grid.grid[0])):
+        for j in range(len(grid.grid)):
+            if 4<=grid.grid[i][j].ctype <=6:
+                output.append(grid.grid[i][j])
+    return output
+
+
 
 def calculate_POW2(grid,cell):
     new_grid=Grid(D_MOD)
@@ -910,25 +975,25 @@ def calculate_observations(grid):
     output_grid=grid.copy()
     for i in range (len(grid.grid[0])):
         for j in range(len(grid.grid)):
-            if grid.grid[i][j].observe_array[0]==1 or grid.grid[i][j].observe_array[1]==1 or grid.grid[i][j].observe_array[2]==1 or grid.grid[i][j].observe_array[3]==1:
-                po=calculate_PO(grid,grid.grid[i][j])
-                pow2=calculate_POW2(grid,grid.grid[i][j])
-                p_wumpus=0
-                p_mage=0
-                p_hero=0
-                p_pit=0
-                if po[1]!=0:
-                    p_wumpus=grid.grid[i][j].p_wumpus*pow2[1]/po[1]
-                if po[0]!=0:
-                    p_mage=grid.grid[i][j].p_mage*pow2[0]/po[0]
-                if po[3]!=0:
-                    p_pit=grid.grid[i][j].p_hole*pow2[3]/po[3]
-                    #print(f'FJDKSAL;FJDK;LSAJFD;LSA\t{i},{j},{grid.grid[i][j].p_hole},{o_given_type[i][j].p_hole},{po[3]}')
-                if po[2]!=0:
-                    p_hero=grid.grid[i][j].p_hero*pow2[2]/po[2]
-                output_grid[i][j].set_probabilities(p_pit,p_wumpus,p_hero,p_mage)
-            else:
-                output_grid[i][j].set_probabilities(grid.grid[i][j].p_hole,grid.grid[i][j].p_wumpus,grid.grid[i][j].p_hero,grid.grid[i][j].p_mage)
+            #if grid.grid[i][j].observe_array[0]==1 or grid.grid[i][j].observe_array[1]==1 or grid.grid[i][j].observe_array[2]==1 or grid.grid[i][j].observe_array[3]==1:
+            po=calculate_PO(grid,grid.grid[i][j])
+            pow2=calculate_POW2(grid,grid.grid[i][j])
+            p_wumpus=grid.grid[i][j].p_wumpus
+            p_mage=grid.grid[i][j].p_mage
+            p_hero=grid.grid[i][j].p_hero
+            p_pit=grid.grid[i][j].p_hole
+            if po[1]!=0:
+                p_wumpus=grid.grid[i][j].p_wumpus*pow2[1]/po[1]
+            if po[0]!=0:
+                p_mage=grid.grid[i][j].p_mage*pow2[0]/po[0]
+            if po[3]!=0:
+                p_pit=grid.grid[i][j].p_hole*pow2[3]/po[3]
+                #print(f'FJDKSAL;FJDK;LSAJFD;LSA\t{i},{j},{grid.grid[i][j].p_hole},{o_given_type[i][j].p_hole},{po[3]}')
+            if po[2]!=0:
+                p_hero=grid.grid[i][j].p_hero*pow2[2]/po[2]
+            output_grid[i][j].set_probabilities(p_pit,p_wumpus,p_hero,p_mage)
+            #else:
+                #output_grid[i][j].set_probabilities(grid.grid[i][j].p_hole,grid.grid[i][j].p_wumpus,grid.grid[i][j].p_hero,grid.grid[i][j].p_mage)
     return output_grid
 
 # 0:Mage, 1:WUMP, 2:Hero, 3:Pit
