@@ -38,7 +38,7 @@ class Cell:
         self.fog_opacity = 255
         self.innerRect=pygame.Rect(self.x+2,self.y+2,self.size-1,self.size-1)
         self.observationSurf = pygame.Surface((self.size/5, self.size-3))
-        self.observe_array = bitarray(4) #CREATES A BIT ARRAY FOR OBSERVATION BOOLEANS (bit index order: 0123)
+        self.observe_array = bitarray(4) #CREATES A BIT ARRAY FOR OBSERVATION BOOLEANS (bit index order: 0123)#mage,wumpus,hero,pit
         self.observe_array.setall(0)
         self.p_hole=0
         self.p_hero=0
