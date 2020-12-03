@@ -1006,6 +1006,8 @@ def calculate_pow2(grid,cell):
                 elif t==3:
                     if p==0:
                         p_p=0
+                    elif j==0 or j==grid.axis_dim-1:
+                        p_p=0
                     else:
                         p_p=grid.grid[i][j].p_hole*(p-1)/p
                     p_w=grid.grid[i][j].p_wumpus*(1-cell.p_wumpus)
