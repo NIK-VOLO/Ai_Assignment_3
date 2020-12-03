@@ -962,6 +962,7 @@ def get_cpu_pieces(grid):
 
 
 def calculate_pow2(grid,cell):
+    print("here?")
     new_grid=Grid(D_MOD)
     new_grid.grid=grid.copy()
     output_grid=Grid(D_MOD)
@@ -978,7 +979,7 @@ def calculate_pow2(grid,cell):
     w=UNITS[1]
     m=UNITS[0]
     h=UNITS[2]
-    p=((grid.axis_dim/3)-1)*(grid.axis_dim-2)
+    p=((grid.axis_dim/3)-1)#*(grid.axis_dim-2)
     #-----------------------------------------------------------------
     # T is for calculations for each of the types: pit, wumpus, hero, mage
     # This loops goes through the grid, calculates the value of the specific type for
@@ -1008,6 +1009,8 @@ def calculate_pow2(grid,cell):
                         p_p=0
                     elif j==0 or j==grid.axis_dim-1:
                         p_p=0
+                    elif not j==cell.row:
+                        p_p=grid.grid[i][j].p_hole
                     else:
                         p_p=grid.grid[i][j].p_hole*(p-1)/p
                     p_w=grid.grid[i][j].p_wumpus*(1-cell.p_wumpus)
