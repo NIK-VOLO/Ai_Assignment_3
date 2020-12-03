@@ -9,5 +9,5 @@ b[1]=1
 b[2]=1
 b[3]=1
 
-print(b&(bitarray('0001')))
+print(0**0)
 
