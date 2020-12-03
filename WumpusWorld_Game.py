@@ -968,6 +968,15 @@ def calculate_pow2(grid,cell):
     output_grid=Grid(D_MOD)
     output_grid.grid=grid.copy()
     outputs=list()
+    do_calc=[True,True,True,True]
+    if cell.p_mage==0:
+        do_calc[0]=False
+    if cell.p_wumpus==0:
+        do_calc[1]=False
+    if cell.p_hero==0:
+        do_calc[2]=False
+    if cell.p_hole==0:
+        do_calc[3]=False
     # Keeps track of the number of each unit type ==> 0:Mage, 1:WUMP, 2:HERO (player side)
     p_w=0
     p_m=0
@@ -989,22 +998,22 @@ def calculate_pow2(grid,cell):
             for j in range(len(grid.grid)):
                 if(i==cell.col and j==cell.row):
                     continue
-                if t==1:
+                if t==1 and do_calc[1]:
                     p_w=grid.grid[i][j].p_wumpus*(w-1)/w
                     p_m=grid.grid[i][j].p_mage*(1-cell.p_mage)
                     p_h=grid.grid[i][j].p_hero*(1-cell.p_hero)
                     p_p=grid.grid[i][j].p_hole*(1-cell.p_hole)
-                elif t==0:
+                elif t==0 and do_calc[0]:
                     p_w=grid.grid[i][j].p_wumpus*(1-cell.p_wumpus)
                     p_m=grid.grid[i][j].p_mage*(m-1)/m
                     p_h=grid.grid[i][j].p_hero*(1-cell.p_hero)
                     p_p=grid.grid[i][j].p_hole*(1-cell.p_hole)
-                elif t==2:
+                elif t==2 and do_calc[2]:
                     p_w=grid.grid[i][j].p_wumpus*(1-cell.p_wumpus)
                     p_m=grid.grid[i][j].p_mage*(1-cell.p_mage)
                     p_h=grid.grid[i][j].p_hero*(h-1)/h
                     p_p=grid.grid[i][j].p_hole*(1-cell.p_hole)
-                elif t==3:
+                elif t==3 and do_calc[3]:
                     if p==0:
                         p_p=0
                     elif j==0 or j==grid.axis_dim-1:
@@ -1018,24 +1027,36 @@ def calculate_pow2(grid,cell):
                     p_h=grid.grid[i][j].p_hero*(1-cell.p_hero)
                 new_grid.grid[i][j].set_probabilities(p_p,p_w,p_h,p_m)
         if t==1:
-            new_grid.grid[cell.col][cell.row].set_probabilities(0,1,0,0)
-            po=calc_po3(new_grid)
-            outputs.append(po)
-        elif t==0:
-            new_grid.grid[cell.col][cell.row].set_probabilities(0,0,0,1)
-            po=calc_po3(new_grid)
-            outputs.append(po)
-        elif t==2:
-            new_grid.grid[cell.col][cell.row].set_probabilities(0,0,1,0)
-            po=calc_po3(new_grid)
-            outputs.append(po)
-        elif t==3:
-            if p==0:
-                outputs.append(0)
-            else:
-                new_grid.grid[cell.col][cell.row].set_probabilities(1,0,0,0)
+            if do_calc[1]:
+                new_grid.grid[cell.col][cell.row].set_probabilities(0,1,0,0)
                 po=calc_po3(new_grid)
                 outputs.append(po)
+            else:
+                outputs.append(0)
+        elif t==0:
+            if do_calc[0]:    
+                new_grid.grid[cell.col][cell.row].set_probabilities(0,0,0,1)
+                po=calc_po3(new_grid)
+                outputs.append(po)
+            else:
+                outputs.append(0)
+        elif t==2:
+            if do_calc[2]:
+                new_grid.grid[cell.col][cell.row].set_probabilities(0,0,1,0)
+                po=calc_po3(new_grid)
+                outputs.append(po)
+            else:
+                outputs.append(0)
+        elif t==3:
+            if do_calc[3]:
+                if p==0:
+                    outputs.append(0)
+                else:
+                    new_grid.grid[cell.col][cell.row].set_probabilities(1,0,0,0)
+                    po=calc_po3(new_grid)
+                    outputs.append(po)
+            else:
+                outputs.append(0)
     return outputs
 
 def calculate_observations(grid):
