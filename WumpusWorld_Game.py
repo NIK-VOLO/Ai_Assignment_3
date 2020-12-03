@@ -774,7 +774,7 @@ def calc_po3(grid):
     pits_per_row[len(grid.grid)-1]=0
     cpu_pieces=get_cpu_pieces(grid)
     player_pieces=[UNITS[0],UNITS[1],UNITS[2]]
-    print(player_pieces)
+    #print(player_pieces)
     all_neighbors=list()
     string_board=[['.' for _ in range(len(grid.grid))] for _ in range(len(grid.grid[0]))]
     for i in cpu_pieces:
@@ -839,7 +839,7 @@ def observations_bit_board(grid,cpu_pieces):
 def calc_po3_loop1(neighbors,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row):
     if len(neighbors)==0:
         if observations_satisfied(cpu_pieces,string_board,grid):
-            print_string_board(string_board)
+            #print_string_board(string_board)
             observed_calculations=board_calculations(static_observed_cells,string_board)
             return observed_calculations*calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,unobserved_cells)
     else:
@@ -945,8 +945,8 @@ def board_calculations(cell_list,string_board):
             total*=i.p_wumpus
         if piece_type=='PH':
             total*=i.p_hero
-        # if piece_type=='P':
-        #     total*=i.p_hole
+        if piece_type=='P':
+            total*=i.p_hole
     return total
 
 
@@ -982,7 +982,7 @@ def calculate_pow2(grid,cell):
     # T is for calculations for each of the types: pit, wumpus, hero, mage
     # This loops goes through the grid, calculates the value of the specific type for 
     # all of the cells, and then repeats for every single type
-    for t in range(3):
+    for t in range(4):
         for i in range(len(grid.grid[0])):
             for j in range(len(grid.grid)):
                 if(i==cell.col and j==cell.row):
@@ -1003,10 +1003,13 @@ def calculate_pow2(grid,cell):
                     p_h=grid.grid[i][j].p_hero*(h-1)/h
                     p_p=grid.grid[i][j].p_hole*(1-cell.p_hole)
                 elif t==3:
+                    if p==0:
+                        p_p=0
+                    else:
+                        p_p=grid.grid[i][j].p_hole*(p-1)/p
                     p_w=grid.grid[i][j].p_wumpus*(1-cell.p_wumpus)
                     p_m=grid.grid[i][j].p_mage*(1-cell.p_mage)
                     p_h=grid.grid[i][j].p_hero*(1-cell.p_hero)
-                    p_p=grid.grid[i][j].p_hole*(p-1)/p
                 new_grid.grid[i][j].set_probabilities(p_p,p_w,p_h,p_m)
         if t==1:
             new_grid.grid[cell.col][cell.row].set_probabilities(0,1,0,0)
@@ -1021,14 +1024,19 @@ def calculate_pow2(grid,cell):
             po=calc_po3(new_grid)            
             outputs.append(po)
         elif t==3:
-            new_grid.grid[cell.col][cell.row].set_probabilities(1,0,0,0)
-            po=calc_po3(new_grid)
-            outputs.append(po)
+            if p==0:
+                outputs.append(0)
+            else:
+                new_grid.grid[cell.col][cell.row].set_probabilities(1,0,0,0)
+                po=calc_po3(new_grid)
+                outputs.append(po)
     return outputs
 
 def calculate_observations(grid):
     output_grid=grid.copy()
     po=calc_po3(grid)
+    print('PO')
+    print(po)
     for i in range (len(grid.grid[0])):
         for j in range(len(grid.grid)):
             #if grid.grid[i][j].observe_array[0]==1 or grid.grid[i][j].observe_array[1]==1 or grid.grid[i][j].observe_array[2]==1 or grid.grid[i][j].observe_array[3]==1:
@@ -1040,7 +1048,7 @@ def calculate_observations(grid):
             if po!=0:
                 p_wumpus=grid.grid[i][j].p_wumpus*pow2[1]/po
                 p_mage=grid.grid[i][j].p_mage*pow2[0]/po
-                #p_pit=grid.grid[i][j].p_hole*pow2[3]/po
+                p_pit=grid.grid[i][j].p_hole*pow2[3]/po
                 p_hero=grid.grid[i][j].p_hero*pow2[2]/po
             output_grid[i][j].set_probabilities(p_pit,p_wumpus,p_hero,p_mage)
             #else:
