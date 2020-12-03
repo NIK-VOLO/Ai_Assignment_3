@@ -64,7 +64,6 @@ class Grid:
         for i in range(self.axis_dim):
             for j in range(self.axis_dim):
                 output_grid[j][i]=self.grid[j][i].copy()
-        print("RETURNED COPY GRID")
         return output_grid
 # --------------------------------------------------------------------
     def init_grid(self):
@@ -137,9 +136,11 @@ class Grid:
     def generate_grid(self,dimension_mod):
         global PLAYER_NUM_UNITS
         global CPU_NUM_UNITS
+        global UNITS
         PLAYER_NUM_UNITS=0
         CPU_NUM_UNITS=0
         self.axis_dim=3*dimension_mod
+        UNITS=[dimension_mod]*3
         self.grid=None
         self.grid = [[None for _ in range(self.axis_dim)] for _ in range(self.axis_dim)]
         background.fill((0,0,0))
@@ -246,7 +247,7 @@ def update_selected(cell):
     #pygame.display.update()
     NUM_SELECTED += 1
     PLAYER_SELECTIONS.put(cell)
-    print(f"SELECTED CELL :: {CLICKED_POS}  {cell.get_type_text()})")
+    #print(f"SELECTED CELL :: {CLICKED_POS}  {cell.get_type_text()})")
 
 
 def player_move_unit(grid, event):
@@ -282,11 +283,11 @@ def player_move_unit(grid, event):
                     print("Please select a friendly piece first!")
                 elif NUM_SELECTED > 0 and (4 <= cell.ctype <= 8):
                     update_selected(cell)
-            print(f"Num selected = {NUM_SELECTED}")
+            #print(f"Num selected = {NUM_SELECTED}")
 
 
             if NUM_SELECTED == 2:
-                print("CONFIRMED MOVE")
+                #print("CONFIRMED MOVE")
                 #cell.draw(background)
                 # Get the two cells from the queue
                 p_piece = PLAYER_SELECTIONS.get()
@@ -299,7 +300,7 @@ def player_move_unit(grid, event):
                 NUM_SELECTED -=1
 
                 code=p_piece.fight(t_piece)
-                print(f'Code:{code}')
+                #print(f'Code:{code}')
                 # No battle, swap cells
                 if code==0:
                     temp_type = t_piece.ctype
@@ -311,7 +312,7 @@ def player_move_unit(grid, event):
                 # both pieces die
                 elif code==-2:
                     UNITS[p_piece.ctype-1] -= 1 # Decrements the amount of units of a particular type
-                    print(f'UNITS: {UNITS}')
+                    #print(f'UNITS: {UNITS}')
                     t_piece.ctype=Ctype.EMPTY
                     p_piece.ctype=Ctype.EMPTY
                     PLAYER_NUM_UNITS -= 1
@@ -324,9 +325,9 @@ def player_move_unit(grid, event):
                     p_piece.ctype=Ctype.EMPTY
                 # p_piece dies
                 elif code==-1:
-                    print('here')
+                    #print('here')
                     UNITS[p_piece.ctype-1] -= 1
-                    print(f'UNITS: {UNITS}')
+                    #print(f'UNITS: {UNITS}')
                     p_piece.ctype=Ctype.EMPTY
                     print(p_piece)
                     PLAYER_NUM_UNITS -= 1
@@ -345,11 +346,11 @@ def player_move_unit(grid, event):
                 str_board=grid.gen_string_board()
                 grid.convert_string_board(str_board)
                 pygame.display.update()
-                print(f'cpu pieces:{PLAYER_NUM_UNITS}')
-                print(f'player pieces:{CPU_NUM_UNITS}')
+                #print(f'cpu pieces:{PLAYER_NUM_UNITS}')
+                #print(f'player pieces:{CPU_NUM_UNITS}')
 
 
-                print(f"PLAYER PIECES ({PLAYER_NUM_UNITS}) ---- CPU PIECES ({CPU_NUM_UNITS})")
+                #print(f"PLAYER PIECES ({PLAYER_NUM_UNITS}) ---- CPU PIECES ({CPU_NUM_UNITS})")
 
 
                 VICTORY_TEXT = check_win()
@@ -365,7 +366,7 @@ def player_move_unit(grid, event):
                 #-----------------------------------
 
                 grid.draw_map()
-                calc_po3(grid)
+                print(calc_po3(grid))
 
                 # x=alphabeta((str_board,CPU_NUM_UNITS,PLAYER_NUM_UNITS),2,float('inf'),float('-inf'),True)
                 # PLAYER_NUM_UNITS=x[1][2]
@@ -726,7 +727,7 @@ def calculate_prob(grid):
             h_prob=0
             p_prob=0
     FRESH = False
-    print("got to output grid")
+    #print("got to output grid")
     return output_grid
 
 #returns array of observation probabilities for each type
@@ -769,8 +770,9 @@ def calculate_PO2(grid,cell):
 def calc_po3(grid):
     cpu_pieces=get_cpu_pieces(grid)
     player_pieces=[UNITS[0],UNITS[1],UNITS[2]]
+    print(player_pieces)
     all_neighbors=list()
-    string_board=[[' ' for _ in range(len(grid.grid))] for _ in range(len(grid.grid[0]))]
+    string_board=[['.' for _ in range(len(grid.grid))] for _ in range(len(grid.grid[0]))]
     for i in cpu_pieces:
         string_board[i.col][i.row]=i.get_type_text()
         current_neighbors=get_neighbors(i,grid)
@@ -780,11 +782,17 @@ def calc_po3(grid):
         string_board[n.col][n.row]='-'
     output_grid=grid
     output_grid.grid=grid.copy()
+    unobserved_cells=list()
+    for i in range(len(string_board)):
+        for j in range(len(string_board[0])):
+            if(string_board[i][j]=='.'):
+                unobserved_cells.append(grid.grid[i][j])
+
     #create a string board with possible observations
     bit_board=observations_bit_board(output_grid,cpu_pieces)
     # print_string_board(bit_board)
     # print_string_board(string_board)
-    return calc_po3_loop1(all_neighbors,output_grid,bit_board,string_board,cpu_pieces,player_pieces)
+    return calc_po3_loop1(all_neighbors,unobserved_cells,output_grid,bit_board,string_board,cpu_pieces,player_pieces)
 
 
 def observations_bit_board(grid,cpu_pieces):
@@ -802,41 +810,42 @@ def observations_bit_board(grid,cpu_pieces):
 
 
 #recursive function to iterate through observed cells
-def calc_po3_loop1(neighbors,grid,bit_board,string_board,cpu_pieces,player_pieces):
+def calc_po3_loop1(neighbors,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces):
     if len(neighbors)==0:
         if observations_satisfied(cpu_pieces,string_board,grid):
-            return calc_po3_loop2(grid,string_board)
+            return calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells)
     else:
         total=0
-        cell=neighbors.pop(0)
+        neighborsc=copy.copy(neighbors)
+        cell=neighborsc.pop(0)
         bits=bit_board[cell.col][cell.row]
         #player pieces ex. =[2,2,2]
         #mage,wumpus,hero,pit
         #mage
-        if bits[0] and player_pieces[0]>0:
+        if bits[0] and player_pieces[0]>0 and cell.p_mage>0:
             player_pieces[0]-=1
             string_board[cell.col][cell.row]='PM'
-            total+=calc_po3_loop1(neighbors,grid,bit_board,string_board,cpu_pieces,player_pieces)
+            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces)
             player_pieces[0]+=1
         #wumpus
-        if bits[1] and player_pieces[1]>0:
+        if bits[1] and player_pieces[1]>0 and cell.p_wumpus>0:
             player_pieces[1]-=1
             string_board[cell.col][cell.row]='PW'
-            total+=calc_po3_loop1(neighbors,grid,bit_board,string_board,cpu_pieces,player_pieces)
+            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces)
             player_pieces[1]+=1
         #hero
-        if bits[2] and player_pieces[2]>0:
+        if bits[2] and player_pieces[2]>0 and cell.p_hero>0:
             player_pieces[2]-=1
             string_board[cell.col][cell.row]='PH'
-            total+=calc_po3_loop1(neighbors,grid,bit_board,string_board,cpu_pieces,player_pieces)
+            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces)
             player_pieces[2]+=1
         #pit
         if bits[3]:
             string_board[cell.col][cell.row]='P'
-            total+=calc_po3_loop1(neighbors,grid,bit_board,string_board,cpu_pieces,player_pieces)
+            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces)
         #empty
         string_board[cell.col][cell.row]='E'
-        total+=calc_po3_loop1(neighbors,grid,bit_board,string_board,cpu_pieces,player_pieces)
+        total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces)
         return total
     return 0
 
@@ -857,18 +866,79 @@ def observations_satisfied(cpu_pieces,string_board,grid):
         bits=i.observe_array
         for j in range(4):#CHANGE BACK TO 4 WHEN PITS IS FIXED
             if bits[j]==1 and pieces[j]==0:
+                #print('This Board Does Not Work')
+                #print_string_board(string_board)
                 return False
     return True
 
 #recusive function to iterate through unobserved cells
-def calc_po3_loop2(grid,string_board):
-    print('INSIDE LOOP2')
-    print_string_board(string_board)
+def calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells):
+    if(len(unobserved_cells)==0):
+        if(sum(player_pieces)!=0):
+            print('BIG ERROR FIX')
+        print_string_board(string_board)
+        #return board_calculations(grid,string_board)
+        return 0
+    else:
+        unobservedc=copy.copy(unobserved_cells)
+        cell=unobservedc.pop(0)    
+        total=0
+        if player_pieces[0]>0 and cell.p_mage>0:
+            player_pieces[0]-=1
+            string_board[cell.col][cell.row]='PM'
+            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc)
+            player_pieces[0]+=1    
+
+        if player_pieces[1]>0 and cell.p_wumpus>0:
+            player_pieces[1]-=1
+            string_board[cell.col][cell.row]='PW'
+            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc)
+            player_pieces[1]+=1
 
 
+        if player_pieces[2]>0 and cell.p_hero>0:
+            player_pieces[2]-=1
+            string_board[cell.col][cell.row]='PH'
+            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc)
+            player_pieces[2]+=1
+
+        if sum(player_pieces)<len(unobserved_cells):
+            string_board[cell.col][cell.row]='E'
+            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc)
+        return total
+        #Pits in unobserved cells have to be accounted for eventually
 
 
-    return 0
+def board_calculations(grid,string_board):
+    global UNITS
+    sums=[0,0,0,0]
+    w=UNITS[1]
+    m=UNITS[0]
+    h=UNITS[2]
+    for i in range(len(grid)):
+        for j in range(len(grid[0])):
+            sums[0]+=grid.grid[i][j].p_mage
+            sums[1]+=grid.grid[i][j].p_wumpus
+            sums[2]+=grid.grid[i][j].p_hero
+            sums[3]+=grid.grid[i][j].p_hole
+    alpha=[0,0,0,0]
+    total=1
+    for i in range(len(sums)):
+        if(sums[i]!=0):
+            alpha[i]=1/sums[i]
+    for i in range(len(string_board)):
+        for j in range(len(string_board[0])):
+            if(string_board[i][j]=='PM'):
+                total*=alpha[0]*grid.grid[i][j].p_mage*m
+                m-=1
+            if(string_board[i][j]=='PW'):
+                total*=alpha[1]*grid.grid[i][j].p_wumpus*w
+                w-=1
+            if(string_board[i][j]=='PH'):
+                total*=alpha[2]*grid.grid[i][j].p_wumpus*h
+                h-=1
+    return total
+
 
 def get_cpu_pieces(grid):
     output=list()
@@ -1211,9 +1281,9 @@ while is_running:
         if event.type == pygame.MOUSEBUTTONUP:
             pos = pygame.mouse.get_pos()
             col, row = get_clicked_pos(grid, pos)
-            if col < 3*D_MOD and row < 3*D_MOD:
+            #if col < 3*D_MOD and row < 3*D_MOD:
                 #print(get_neighbors(grid.grid[col][row],grid))
-                print(grid.grid[col][row])
+                #print(grid.grid[col][row])
 
 
     manager.process_events(event)
