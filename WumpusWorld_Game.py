@@ -797,7 +797,7 @@ def calc_po3(grid):
     bit_board=observations_bit_board(output_grid,cpu_pieces)
     # print_string_board(bit_board)
     # print_string_board(string_board)
-    total=calc_po3_loop1(all_neighbors,unobserved_cells,output_grid,bit_board,string_board,cpu_pieces,player_pieces,all_neighbors,pits_per_row)
+    total=calc_po3_loop2(output_grid,bit_board,string_board,player_pieces,cpu_pieces,unobserved_cells,unobserved_cells,all_neighbors,pits_per_row)
     total*=multiplier(grid)
     return total
 
@@ -808,6 +808,7 @@ def multiplier(grid):
     w=UNITS[1]
     m=UNITS[0]
     h=UNITS[2]
+    p=((grid.axis_dim/3)-1)*(grid.axis_dim-2)
     for i in range(len(grid.grid)):
         for j in range(len(grid.grid[0])):
             sums[0]+=grid.grid[i][j].p_mage
@@ -818,7 +819,7 @@ def multiplier(grid):
     for i in range(len(sums)):
         if(sums[i]!=0):
             alpha[i]=1/sums[i]
-    multiplier=math.factorial(w)*math.factorial(m)*math.factorial(h)*(alpha[0]**m)*(alpha[1]**w)*(alpha[2]**h)
+    multiplier=math.factorial(w)*math.factorial(m)*math.factorial(h)*(alpha[0]**m)*(alpha[1]**w)*(alpha[2]**h)*(alpha[3]**p)*((grid.axis_dim-2)*math.factorial(((grid.axis_dim/3)-1)))
     return multiplier
 
 
@@ -841,8 +842,10 @@ def calc_po3_loop1(neighbors,unobserved_cells,grid,bit_board,string_board,cpu_pi
     if len(neighbors)==0:
         if observations_satisfied(cpu_pieces,string_board,grid):
             #print_string_board(string_board)
+            if(sum(player_pieces)!=0):
+                return 0
             observed_calculations=board_calculations(static_observed_cells,string_board)
-            return observed_calculations*calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,unobserved_cells)
+            return observed_calculations
     else:
         total=0
         neighborsc=copy.copy(neighbors)
@@ -902,11 +905,10 @@ def observations_satisfied(cpu_pieces,string_board,grid):
     return True
 
 #recusive function to iterate through unobserved cells
-def calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,static_unobserved_cells):
+def calc_po3_loop2(grid,bit_board,string_board,player_pieces,cpu_pieces,unobserved_cells,static_unobserved_cells,neighbor_cells,pits_per_row):
     if(len(unobserved_cells)==0):
-        if(sum(player_pieces)!=0):
-            print('BIG ERROR FIX')
-        return board_calculations(static_unobserved_cells,string_board)
+        unobserved_calculations=board_calculations(static_unobserved_cells,string_board)
+        return unobserved_calculations*calc_po3_loop1(neighbor_cells,static_unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,neighbor_cells,pits_per_row)
     else:
         unobservedc=copy.copy(unobserved_cells)
         cell=unobservedc.pop(0)
@@ -914,24 +916,24 @@ def calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,static_unobs
         if player_pieces[0]>0 and cell.p_mage>0:
             player_pieces[0]-=1
             string_board[cell.col][cell.row]='PM'
-            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells)
+            total+=calc_po3_loop2(grid,bit_board,string_board,player_pieces,cpu_pieces,unobservedc,static_unobserved_cells,neighbor_cells,pits_per_row)
             player_pieces[0]+=1
 
         if player_pieces[1]>0 and cell.p_wumpus>0:
             player_pieces[1]-=1
             string_board[cell.col][cell.row]='PW'
-            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells)
+            total+=calc_po3_loop2(grid,bit_board,string_board,player_pieces,cpu_pieces,unobservedc,static_unobserved_cells,neighbor_cells,pits_per_row)
             player_pieces[1]+=1
 
         if player_pieces[2]>0 and cell.p_hero>0:
             player_pieces[2]-=1
             string_board[cell.col][cell.row]='PH'
-            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells)
+            total+=calc_po3_loop2(grid,bit_board,string_board,player_pieces,cpu_pieces,unobservedc,static_unobserved_cells,neighbor_cells,pits_per_row)
             player_pieces[2]+=1
 
         if sum(player_pieces)<len(unobserved_cells):
             string_board[cell.col][cell.row]='E'
-            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells)
+            total+=calc_po3_loop2(grid,bit_board,string_board,player_pieces,cpu_pieces,unobservedc,static_unobserved_cells,neighbor_cells,pits_per_row)
         return total
         #Pits in unobserved cells have to be accounted for eventually
 
