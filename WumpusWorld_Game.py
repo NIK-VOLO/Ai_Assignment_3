@@ -203,11 +203,12 @@ class Grid:
         for row in self.grid:
             for cell in row:
                 cell.set_fog(FOG)
-                cell.draw(win)
+
                 if(1<=cell.ctype<=3):
                     get_observations(cell, grid, False)
                 if(4<=cell.ctype<=6):
                     get_observations(cell, grid, True)
+                cell.draw(win)
         pygame.display.update()
 # --------------------------------------------------------------------
 
@@ -908,13 +909,13 @@ def calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,static_unobs
         return board_calculations(static_unobserved_cells,string_board)
     else:
         unobservedc=copy.copy(unobserved_cells)
-        cell=unobservedc.pop(0)    
+        cell=unobservedc.pop(0)
         total=0
         if player_pieces[0]>0 and cell.p_mage>0:
             player_pieces[0]-=1
             string_board[cell.col][cell.row]='PM'
             total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells)
-            player_pieces[0]+=1    
+            player_pieces[0]+=1
 
         if player_pieces[1]>0 and cell.p_wumpus>0:
             player_pieces[1]-=1
@@ -980,7 +981,7 @@ def calculate_pow2(grid,cell):
     p=((grid.axis_dim/3)-1)*(grid.axis_dim-2)
     #-----------------------------------------------------------------
     # T is for calculations for each of the types: pit, wumpus, hero, mage
-    # This loops goes through the grid, calculates the value of the specific type for 
+    # This loops goes through the grid, calculates the value of the specific type for
     # all of the cells, and then repeats for every single type
     for t in range(4):
         for i in range(len(grid.grid[0])):
@@ -1013,15 +1014,15 @@ def calculate_pow2(grid,cell):
                 new_grid.grid[i][j].set_probabilities(p_p,p_w,p_h,p_m)
         if t==1:
             new_grid.grid[cell.col][cell.row].set_probabilities(0,1,0,0)
-            po=calc_po3(new_grid)            
+            po=calc_po3(new_grid)
             outputs.append(po)
         elif t==0:
             new_grid.grid[cell.col][cell.row].set_probabilities(0,0,0,1)
-            po=calc_po3(new_grid)            
+            po=calc_po3(new_grid)
             outputs.append(po)
         elif t==2:
             new_grid.grid[cell.col][cell.row].set_probabilities(0,0,1,0)
-            po=calc_po3(new_grid)            
+            po=calc_po3(new_grid)
             outputs.append(po)
         elif t==3:
             if p==0:
