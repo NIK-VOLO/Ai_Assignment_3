@@ -35,6 +35,9 @@ manager = pygame_gui.UIManager((WIN_X, WIN_Y))
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 D_MOD = 2
 CLICKED_POS = (-1, -1)
+OBSERVED_STATES={}
+UNOBSERVED_STATES={}
+
 LAST_CLICKED = CLICKED_POS
 NUM_SELECTED = 0 # Keeps track of the number of each unit type ==> 0:Mage, 1:WUMP, 2:HERO (player side)
 # QUEUE TO KEEP TRACK OF CONSECUTIVE SELECTS
@@ -368,8 +371,8 @@ def player_move_unit(grid, event):
                 #-----------------------------------
 
                 grid.draw_map()
-                grid.grid=calculate_observations(grid)
-
+                #grid.grid=calculate_observations(grid)
+                calc_observations2(grid)
                 # x=alphabeta((str_board,CPU_NUM_UNITS,PLAYER_NUM_UNITS),2,float('inf'),float('-inf'),True)
                 # PLAYER_NUM_UNITS=x[1][2]
                 # CPU_NUM_UNITS=x[1][1]
@@ -716,13 +719,9 @@ def calculate_prob(grid):
                 p_prob=0
                 continue
             for n in neighbors:
-                # if FRESH:
-                #     n.p_wumpus = 1/len(neighbors)
-                #     n.p_mage = 1/len(neighbors)
-                #     n.p_hero = 1/len(neighbors)
-                w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
-                m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
-                h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
+                w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*(unknown_neighbors(n,grid)))
+                m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*(unknown_neighbors(n,grid)))
+                h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*(unknown_neighbors(n,grid)))
             output_grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
             w_prob=0
             m_prob=0
@@ -732,43 +731,196 @@ def calculate_prob(grid):
     #print("got to output grid")
     return output_grid
 
-#returns array of observation probabilities for each type
-# 0:Mage, 1:WUMP, 2:Hero, 3:Pit
-def calculate_PO(grid,cell):
-    prob_array = [0.0,0.0,0.0,0.0]
-    neighbors = get_neighbors(cell, grid)
-    #print(neighbors)
-    for n in neighbors:
-        for i in range(4):
-            if i == 0:
-                prob_array[i] = prob_array[i] + n.p_mage
-            if i == 1:
-                prob_array[i] = prob_array[i] + n.p_wumpus
-            if i == 2:
-                prob_array[i] = prob_array[i] + n.p_hero
-            if i == 3:
-                prob_array[i] = prob_array[i] + n.p_hole
-    return prob_array
+def unknown_neighbors(cell,grid):
+    global D_MOD
+    neighbors = []
+    board_size = D_MOD * 3
+    for j in range(3):
+        for i in range(3):
+            #print(f'{cell.col-1+i}, {cell.row-1+j}')
+            if(i == 1 and j == 1): # the current cell is self, don't check
+                continue
+            if(cell.col-1+i > board_size -1 or cell.col-1+i < 0 or cell.row-1+j > board_size -1 or cell.row-1+j < 0):
+                #print(f"({i},{j}) OUT OF BOUNDS")
+                continue
+            if(grid.grid[cell.col-1+i][cell.row-1+j].p_hole==1 or grid.grid[cell.col-1+i][cell.row-1+j].p_mage==1 or grid.grid[cell.col-1+i][cell.row-1+j].p_wumpus==1 or grid.grid[cell.col-1+i][cell.row-1+j].p_hero==1):
+                continue
+            if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
+                continue
+            #print(f"({i},{j}) is VALID")
+            neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
+    return len(neighbors)
 
-# 0:Mage, 1:WUMP, 2:Hero, 3:Pit
-def calculate_PO2(grid,cell):
-    prob_array = [0.0,0.0,0.0,0.0]
-    neighbors = get_neighbors(cell, grid)
-    #print(neighbors)
-    for n in neighbors:
-        if n.observe_array[0]==1 and 4<=n.ctype<=6:
-            prob_array[0] = prob_array[0] + cell.p_mage
-        elif n.observe_array[1]==1 and 4<=n.ctype<=6:
-            prob_array[1] = prob_array[1] + cell.p_wumpus
-        elif n.observe_array[2]==1 and 4<=n.ctype<=6:
-            prob_array[2] = prob_array[2] + cell.p_hero
-        elif n.observe_array[3]==1 and 4<=n.ctype<=6:
-            prob_array[3] = prob_array[3] + cell.p_hole
-    print(prob_array)
-    return prob_array
+
+def calc_observations2(grid):
+    global OBSERVED_STATES
+    global UNOBSERVED_STATES
+    OBSERVED_STATES={}
+    UNOBSERVED_STATES={}
+    string_board=[['.' for _ in range(len(grid.grid))] for _ in range(len(grid.grid[0]))]
+    unobserved_string_board=copy.deepcopy(string_board)
+    cpu_pieces=get_cpu_pieces(grid)
+    observed_cells=list()
+    unobserved_cells=list()
+    player_pieces=[UNITS[0],UNITS[1],UNITS[2]]
+    for i in cpu_pieces:
+        string_board[i.col][i.row]=i.get_type_text()
+        current_neighbors=get_neighbors(i,grid)
+        observed_cells=list(set().union(observed_cells,current_neighbors))
+    for n in observed_cells:
+        string_board[n.col][n.row]='-'
+    for i in range(len(string_board)):
+        for j in range(len(string_board[0])):
+            if(string_board[i][j]=='.'):
+                unobserved_cells.append(grid.grid[i][j])
+    #At this point we have a string board with cpu pieces, '.' for unobserved, and '-' for observed, list of observed cells, and list of unobserved cells.
+    #print_string_board(string_board)
+    bit_board=observations_bit_board(grid,cpu_pieces)
+    #stores calculations that have already been made for unobserved cells
+    pits_per_row=[grid.axis_dim/3-1]*len(grid.grid)
+    pits_per_row[0]=0
+    pits_per_row[len(grid.grid)-1]=0
+    num_pieces=int(grid.axis_dim/3)
+    print("STRING BOARD AT BEGINNING")
+    print_string_board(unobserved_string_board)
+    gridc=grid
+    gridc.grid=grid.copy()
+    saved_unobserved=[[[[-1 for _ in range(int(sum(pits_per_row)+1))] for _ in range(num_pieces+1)] for _ in range(num_pieces+1)] for _ in range(num_pieces+1)]
+    po=calc_po3_loop1_copy(observed_cells,unobserved_cells,gridc,bit_board,string_board,cpu_pieces,player_pieces,observed_cells,pits_per_row,saved_unobserved,unobserved_string_board)
+    # print("HASHMAP:")
+    # print(OBSERVED_STATES)
+
+
+def get_hash_key(string_board,cells):
+    units=[0]*4
+    for i in cells:
+        if string_board[i.col][i.row]=='PM':
+            units[0]+=1
+        if string_board[i.col][i.row]=='W':
+            units[1]+=1
+        if string_board[i.col][i.row]=='H':
+            units[2]+=1
+        if string_board[i.col][i.row]=='P':
+            units[3]+=1
+    return f'{units[0]}{units[1]}{units[2]}{units[3]}'
+
+
+def calc_po3_loop1_copy(neighbors,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row,saved_unobserved,unobserved_string_board):
+    global OBSERVED_STATES
+    if len(neighbors)==0:
+        if observations_satisfied(cpu_pieces,string_board,grid):
+            # print("Unobserved String Board")
+            # print_string_board(unobserved_string_board)
+            key=get_hash_key(string_board,static_observed_cells)
+            if key in OBSERVED_STATES:
+                OBSERVED_STATES[key].append(copy.deepcopy(string_board))
+            else:
+                OBSERVED_STATES[key]=list()
+                OBSERVED_STATES[key].append(string_board)
+            observed_calculations=board_calculations(static_observed_cells,string_board)
+            pits_left=int(sum(pits_per_row))
+            if saved_unobserved[player_pieces[0]][player_pieces[1]][player_pieces[2]][pits_left]==-1:
+                saved_unobserved[int(player_pieces[0])][int(player_pieces[1])][int(player_pieces[2])][pits_left]=calc_po3_loop2_copy(grid,string_board,player_pieces,unobserved_cells,unobserved_cells,pits_per_row,unobserved_cells_board)
+            return observed_calculations*saved_unobserved[player_pieces[0]][player_pieces[1]][player_pieces[2]][pits_left]
+            #return observed_calculations*calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,unobserved_cells)
+    else:
+        total=0
+        neighborsc=copy.copy(neighbors)
+        cell=neighborsc.pop(0)
+        bits=bit_board[cell.col][cell.row]
+        #player pieces ex. =[2,2,2]
+        #mage,wumpus,hero,pit
+        #mage
+        if bits[0] and player_pieces[0]>0 and cell.p_mage>0:
+            player_pieces[0]-=1
+            string_board[cell.col][cell.row]='PM'
+            total+=calc_po3_loop1_copy(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row,saved_unobserved,unobserved_string_board)
+            player_pieces[0]+=1
+        #wumpus
+        if bits[1] and player_pieces[1]>0 and cell.p_wumpus>0:
+            player_pieces[1]-=1
+            string_board[cell.col][cell.row]='PW'
+            total+=calc_po3_loop1_copy(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row,saved_unobserved,unobserved_string_board)
+            player_pieces[1]+=1
+        #hero
+        if bits[2] and player_pieces[2]>0 and cell.p_hero>0:
+            player_pieces[2]-=1
+            string_board[cell.col][cell.row]='PH'
+            total+=calc_po3_loop1_copy(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row,saved_unobserved,unobserved_string_board)
+            player_pieces[2]+=1
+        #pit
+        if bits[3] and pits_per_row[cell.row]>0:
+            string_board[cell.col][cell.row]='P'
+            pits_per_rowc=copy.copy(pits_per_row)
+            pits_per_rowc[cell.row]-=1
+            total+=calc_po3_loop1_copy(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_rowc,saved_unobserved,unobserved_string_board)
+        #empty
+        string_board[cell.col][cell.row]='E'
+        total+=calc_po3_loop1_copy(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row,saved_unobserved,unobserved_string_board)
+        return total
+    return 0
+
+def calc_po3_loop2_copy(grid,string_board,player_pieces,unobserved_cells,static_unobserved_cells,pits_per_row,unobserved_cells_board):
+    global UNOBSERVED_STATES
+    if(len(unobserved_cells)==0):
+        if(sum(player_pieces)!=0):
+            print('BIG ERROR FIX')
+            return 0
+        key=get_hash_key(string_board,static_unobserved_cells)
+        if key in OBSERVED_STATES:
+            UNOBSERVED_STATES[key].append(copy.deepcopy(string_board))
+        else:
+            UNOBSERVED_STATES[key]=list()
+            UNOBSERVED_STATES[key].append(string_board)
+        
+        return board_calculations(static_unobserved_cells,string_board)
+    else:
+        unobservedc=copy.copy(unobserved_cells)
+        cell=unobservedc.pop(0)
+        total=0
+        if sum(player_pieces)+sum(pits_per_row)>len(unobserved_cells):
+            #print('skip')
+            return 0
+        if player_pieces[0]>0 and cell.p_mage>0:
+            player_pieces[0]-=1
+            string_board[cell.col][cell.row]='PM'
+            total+=calc_po3_loop2_copy(grid,string_board,player_pieces,unobservedc,static_unobserved_cells,pits_per_row,unobserved_cells_board)
+            player_pieces[0]+=1
+
+        if player_pieces[1]>0 and cell.p_wumpus>0:
+            player_pieces[1]-=1
+            string_board[cell.col][cell.row]='PW'
+            total+=calc_po3_loop2_copy(grid,string_board,player_pieces,unobservedc,static_unobserved_cells,pits_per_row,unobserved_cells_board)
+            player_pieces[1]+=1
+
+        if player_pieces[2]>0 and cell.p_hero>0:
+            player_pieces[2]-=1
+            string_board[cell.col][cell.row]='PH'
+            total+=calc_po3_loop2_copy(grid,string_board,player_pieces,unobservedc,static_unobserved_cells,pits_per_row,unobserved_cells_board)
+            player_pieces[2]+=1
+        if pits_per_row[cell.row]>0 and cell.p_hole>0:
+            #pits_per_row[cell.row]-=1
+            pits_per_rowc=copy.copy(pits_per_row)
+            pits_per_rowc[cell.row]-=1
+            string_board[cell.col][cell.row]='P'
+            total+=calc_po3_loop2_copy(grid,string_board,player_pieces,unobservedc,static_unobserved_cells,pits_per_rowc,unobserved_cells_board)
+            #pits_per_row[cell.row]+=1
+        if sum(player_pieces)+sum(pits_per_row)<len(unobserved_cells):
+        #if sum(player_pieces)<len(unobserved_cells):
+            string_board[cell.col][cell.row]='E'
+            total+=calc_po3_loop2_copy(grid,string_board,player_pieces,unobservedc,static_unobserved_cells,pits_per_row,unobserved_cells_board)
+        return total
+        #Pits in unobserved cells have to be accounted for eventually
+
+
+
+
+
+
+
+
 
 # 0:Mage, 1:WUMP, 2:Hero,
-# Currently skipping pit because the logic for pit is slightly different
 def calc_po3(grid):
     pits_per_row=[grid.axis_dim/3-1]*len(grid.grid)
     pits_per_row[0]=0
@@ -788,16 +940,20 @@ def calc_po3(grid):
     output_grid=grid
     output_grid.grid=grid.copy()
     unobserved_cells=list()
+    num_pieces=int(grid.axis_dim/3)
+    saved_unobserved=[[[[-1 for _ in range(int(sum(pits_per_row)+1))] for _ in range(num_pieces+1)] for _ in range(num_pieces+1)] for _ in range(num_pieces+1)]
+    #print(saved_unobserved)
     for i in range(len(string_board)):
         for j in range(len(string_board[0])):
             if(string_board[i][j]=='.'):
                 unobserved_cells.append(grid.grid[i][j])
-
+    print('Pits per row:')
+    print(sum(pits_per_row))
     #create a string board with possible observations
     bit_board=observations_bit_board(output_grid,cpu_pieces)
     # print_string_board(bit_board)
     # print_string_board(string_board)
-    total=calc_po3_loop1(all_neighbors,unobserved_cells,output_grid,bit_board,string_board,cpu_pieces,player_pieces,all_neighbors,pits_per_row)
+    total=calc_po3_loop1(all_neighbors,unobserved_cells,output_grid,bit_board,string_board,cpu_pieces,player_pieces,all_neighbors,pits_per_row,saved_unobserved)
     total*=multiplier(grid)
     return total
 
@@ -808,6 +964,7 @@ def multiplier(grid):
     w=UNITS[1]
     m=UNITS[0]
     h=UNITS[2]
+    p=((grid.axis_dim/3)-1)*(grid.axis_dim-2)
     for i in range(len(grid.grid)):
         for j in range(len(grid.grid[0])):
             sums[0]+=grid.grid[i][j].p_mage
@@ -818,7 +975,7 @@ def multiplier(grid):
     for i in range(len(sums)):
         if(sums[i]!=0):
             alpha[i]=1/sums[i]
-    multiplier=math.factorial(w)*math.factorial(m)*math.factorial(h)*(alpha[0]**m)*(alpha[1]**w)*(alpha[2]**h)
+    multiplier=math.factorial(w)*math.factorial(m)*math.factorial(h)*(alpha[0]**m)*(alpha[1]**w)*(alpha[2]**h)*(alpha[3]**p)*((grid.axis_dim-2)*math.factorial(((grid.axis_dim/3)-1)))
     return multiplier
 
 
@@ -837,12 +994,17 @@ def observations_bit_board(grid,cpu_pieces):
 
 
 #recursive function to iterate through observed cells
-def calc_po3_loop1(neighbors,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row):
+def calc_po3_loop1(neighbors,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row,saved_unobserved):
     if len(neighbors)==0:
         if observations_satisfied(cpu_pieces,string_board,grid):
-            #print_string_board(string_board)
+
+            print_string_board(string_board)
             observed_calculations=board_calculations(static_observed_cells,string_board)
-            return observed_calculations*calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,unobserved_cells)
+            pits_left=int(sum(pits_per_row))
+            if saved_unobserved[player_pieces[0]][player_pieces[1]][player_pieces[2]][pits_left]==-1:
+                saved_unobserved[int(player_pieces[0])][int(player_pieces[1])][int(player_pieces[2])][pits_left]=calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,unobserved_cells,pits_per_row)
+            return observed_calculations*saved_unobserved[player_pieces[0]][player_pieces[1]][player_pieces[2]][pits_left]
+            #return observed_calculations*calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,unobserved_cells)
     else:
         total=0
         neighborsc=copy.copy(neighbors)
@@ -854,29 +1016,29 @@ def calc_po3_loop1(neighbors,unobserved_cells,grid,bit_board,string_board,cpu_pi
         if bits[0] and player_pieces[0]>0 and cell.p_mage>0:
             player_pieces[0]-=1
             string_board[cell.col][cell.row]='PM'
-            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row)
+            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row,saved_unobserved)
             player_pieces[0]+=1
         #wumpus
         if bits[1] and player_pieces[1]>0 and cell.p_wumpus>0:
             player_pieces[1]-=1
             string_board[cell.col][cell.row]='PW'
-            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row)
+            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row,saved_unobserved)
             player_pieces[1]+=1
         #hero
         if bits[2] and player_pieces[2]>0 and cell.p_hero>0:
             player_pieces[2]-=1
             string_board[cell.col][cell.row]='PH'
-            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row)
+            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row,saved_unobserved)
             player_pieces[2]+=1
         #pit
         if bits[3] and pits_per_row[cell.row]>0:
             string_board[cell.col][cell.row]='P'
             pits_per_rowc=copy.copy(pits_per_row)
             pits_per_rowc[cell.row]-=1
-            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_rowc)
+            total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_rowc,saved_unobserved)
         #empty
         string_board[cell.col][cell.row]='E'
-        total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row)
+        total+=calc_po3_loop1(neighborsc,unobserved_cells,grid,bit_board,string_board,cpu_pieces,player_pieces,static_observed_cells,pits_per_row,saved_unobserved)
         return total
     return 0
 
@@ -902,36 +1064,48 @@ def observations_satisfied(cpu_pieces,string_board,grid):
     return True
 
 #recusive function to iterate through unobserved cells
-def calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,static_unobserved_cells):
+def calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,static_unobserved_cells,pits_per_row):
     if(len(unobserved_cells)==0):
         if(sum(player_pieces)!=0):
             print('BIG ERROR FIX')
+            return 0
+        
         return board_calculations(static_unobserved_cells,string_board)
     else:
         unobservedc=copy.copy(unobserved_cells)
         cell=unobservedc.pop(0)
         total=0
+        if sum(player_pieces)+sum(pits_per_row)>len(unobserved_cells):
+            #print('skip')
+            return 0
         if player_pieces[0]>0 and cell.p_mage>0:
             player_pieces[0]-=1
             string_board[cell.col][cell.row]='PM'
-            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells)
+            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells,pits_per_row)
             player_pieces[0]+=1
 
         if player_pieces[1]>0 and cell.p_wumpus>0:
             player_pieces[1]-=1
             string_board[cell.col][cell.row]='PW'
-            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells)
+            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells,pits_per_row)
             player_pieces[1]+=1
 
         if player_pieces[2]>0 and cell.p_hero>0:
             player_pieces[2]-=1
             string_board[cell.col][cell.row]='PH'
-            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells)
+            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells,pits_per_row)
             player_pieces[2]+=1
-
-        if sum(player_pieces)<len(unobserved_cells):
+        if pits_per_row[cell.row]>0 and cell.p_hole>0:
+            #pits_per_row[cell.row]-=1
+            pits_per_rowc=copy.copy(pits_per_row)
+            pits_per_rowc[cell.row]-=1
+            string_board[cell.col][cell.row]='P'
+            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells,pits_per_rowc)
+            #pits_per_row[cell.row]+=1
+        if sum(player_pieces)+sum(pits_per_row)<len(unobserved_cells):
+        #if sum(player_pieces)<len(unobserved_cells):
             string_board[cell.col][cell.row]='E'
-            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells)
+            total+=calc_po3_loop2(grid,string_board,player_pieces,unobservedc,static_unobserved_cells,pits_per_row)
         return total
         #Pits in unobserved cells have to be accounted for eventually
 
@@ -1037,7 +1211,7 @@ def calculate_pow2(grid,cell):
             if do_calc[0]:    
                 new_grid.grid[cell.col][cell.row].set_probabilities(0,0,0,1)
                 po=calc_po3(new_grid)
-                outputs.append(po)
+                outputs.append(po) 
             else:
                 outputs.append(0)
         elif t==2:
@@ -1077,6 +1251,14 @@ def calculate_observations(grid):
                 p_mage=grid.grid[i][j].p_mage*pow2[0]/po
                 p_pit=grid.grid[i][j].p_hole*pow2[3]/po
                 p_hero=grid.grid[i][j].p_hero*pow2[2]/po
+            # if(p_wumpus>1):
+            #     p_wumpus=1
+            # if p_mage>1:
+            #     p_mage=1
+            # if p_pit>1:
+            #     p_pit=1
+            # if p_hero>1:
+            #     p_hero=1
             output_grid[i][j].set_probabilities(p_pit,p_wumpus,p_hero,p_mage)
             #else:
                 #output_grid[i][j].set_probabilities(grid.grid[i][j].p_hole,grid.grid[i][j].p_wumpus,grid.grid[i][j].p_hero,grid.grid[i][j].p_mage)
@@ -1193,10 +1375,6 @@ grid.draw_map()
 #     print(n)
 
 
-
-#prob_dist(grid)
-
-calculate_PO(grid,grid.grid[0][0])
 
 while is_running:
     time_delta = clock.tick(60)/1000.0
