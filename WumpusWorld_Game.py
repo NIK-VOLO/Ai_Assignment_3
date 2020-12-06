@@ -1065,21 +1065,21 @@ def calculate_pow2(grid,cell):
         if t==1:
             if do_calc[1]:
                 new_grid.grid[cell.col][cell.row].set_probabilities(0,1,0,0)
-                po=calc_po3(new_grid,True)*(1-cell.p_mage)*(1-cell.p_hero)
+                po=calc_po3(new_grid,True)#*(1-cell.p_mage)*(1-cell.p_hero)
                 outputs.append(po)
             else:
                 outputs.append(0)
         elif t==0:
             if do_calc[0]:    
                 new_grid.grid[cell.col][cell.row].set_probabilities(0,0,0,1)
-                po=calc_po3(new_grid,True)*(1-cell.p_wumpus)*(1-cell.p_hero)
+                po=calc_po3(new_grid,True)#*(1-cell.p_wumpus)*(1-cell.p_hero)
                 outputs.append(po) 
             else:
                 outputs.append(0)
         elif t==2:
             if do_calc[2]:
                 new_grid.grid[cell.col][cell.row].set_probabilities(0,0,1,0)
-                po=calc_po3(new_grid,True)*(1-cell.p_wumpus)*(1-cell.p_mage)
+                po=calc_po3(new_grid,True)#*(1-cell.p_wumpus)*(1-cell.p_mage)
                 print(f'Cell:{cell.col},{cell.row},{po}')
                 outputs.append(po)
             else:
