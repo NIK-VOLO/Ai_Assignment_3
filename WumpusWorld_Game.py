@@ -48,6 +48,7 @@ p_queue = []
 heapq.heapify(p_queue)
 FOG = True
 FRESH = True
+BOARDS=list()
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -342,7 +343,7 @@ def player_move_unit(grid, event):
                 p_piece.draw(background)
 
 
-                grid.grid=calculate_prob(grid)
+                #grid.grid=calculate_prob(grid)
                 #grid.grid=calculate_observations(grid)
 
                 str_board=grid.gen_string_board()
@@ -369,7 +370,7 @@ def player_move_unit(grid, event):
 
                 grid.draw_map()
                 grid.grid=calculate_observations(grid)
-
+                #grid.grid=calculate_prob(grid)
                 # x=alphabeta((str_board,CPU_NUM_UNITS,PLAYER_NUM_UNITS),2,float('inf'),float('-inf'),True)
                 # PLAYER_NUM_UNITS=x[1][2]
                 # CPU_NUM_UNITS=x[1][1]
@@ -705,25 +706,28 @@ def calculate_prob(grid):
             h_prob = (1-(1/PLAYER_NUM_UNITS)) * grid.grid[i][j].p_hero
             p_prob = grid.grid[i][j].p_hole
             neighbors=get_neighbors(temp_cell,grid)
-            if temp_cell.p_wumpus==1 or temp_cell.p_mage==1 or temp_cell.p_hero==1 or temp_cell.p_hole==1:
+            # print(f'CELL:{temp_cell}')
+            if temp_cell.p_wumpus>=.99 or temp_cell.p_mage>=.99 or temp_cell.p_hero>=.99 or temp_cell.p_hole>=.99:
+                # print('Inside loop')
                 output_grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
                 w_prob=0
                 m_prob=0
                 h_prob=0
                 p_prob=0
-                continue
-            for n in neighbors:
-                w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*(unknown_neighbors(n,grid)))
-                m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*(unknown_neighbors(n,grid)))
-                h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*(unknown_neighbors(n,grid)))
-                # w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
-                # m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
-                # h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
-            output_grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
-            w_prob=0
-            m_prob=0
-            h_prob=0
-            p_prob=0
+            else:
+                # print('Else')
+                for n in neighbors:
+                    w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*(unknown_neighbors(n,grid)))
+                    m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*(unknown_neighbors(n,grid)))
+                    h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*(unknown_neighbors(n,grid)))
+                    # w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
+                    # m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
+                    # h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
+                output_grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
+                w_prob=0
+                m_prob=0
+                h_prob=0
+                p_prob=0
     #print("got to output grid")
     return output_grid
 
@@ -739,10 +743,10 @@ def unknown_neighbors(cell,grid):
             if(cell.col-1+i > board_size -1 or cell.col-1+i < 0 or cell.row-1+j > board_size -1 or cell.row-1+j < 0):
                 #print(f"({i},{j}) OUT OF BOUNDS")
                 continue
-            if(grid.grid[cell.col-1+i][cell.row-1+j].p_hole==1 or grid.grid[cell.col-1+i][cell.row-1+j].p_mage==1 or grid.grid[cell.col-1+i][cell.row-1+j].p_wumpus==1 or grid.grid[cell.col-1+i][cell.row-1+j].p_hero==1):
+            if(grid.grid[cell.col-1+i][cell.row-1+j].p_hole>.99 or grid.grid[cell.col-1+i][cell.row-1+j].p_mage>.99 or grid.grid[cell.col-1+i][cell.row-1+j].p_wumpus>.99 or grid.grid[cell.col-1+i][cell.row-1+j].p_hero>.99):
                 continue
-            if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
-                continue
+            # if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
+            #     continue
             #print(f"({i},{j}) is VALID")
             neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
     return len(neighbors)
@@ -800,6 +804,8 @@ def calc_po3(grid,multiply):
     #all neighbors contains list of all neighbors, removing cpu_pieces and duplicates
     for n in all_neighbors:
         string_board[n.col][n.row]='-'
+    mult=1
+
     mult=multiplier(grid)
     output_grid=grid
     output_grid.grid=grid.copy()
@@ -816,24 +822,20 @@ def calc_po3(grid,multiply):
     total=calc_po3_loop1(all_neighbors,unobserved_cells,output_grid,bit_board,string_board,cpu_pieces,player_pieces,all_neighbors,pits_per_row,saved_unobserved)
     # print(f'Total without mult:{total}')
     # print(f'Multiplier:{mult}')
-    if multiply:
-        total*=mult
-    return total
+    # total*=mult
+    
+    total*=mult
 
+    return total
 
 def multiplier(grid):
     global UNITS
-    sums=[0,0,0,0]
+    sums=[UNITS[0],UNITS[1],UNITS[2],((grid.axis_dim/3)-1)] #*(grid.axis_dim-2)]
     w=UNITS[1]
     m=UNITS[0]
     h=UNITS[2]
     p=((grid.axis_dim/3)-1)*(grid.axis_dim-2)
-    for i in range(len(grid.grid)):
-        for j in range(len(grid.grid[0])):
-            sums[0]+=grid.grid[i][j].p_mage
-            sums[1]+=grid.grid[i][j].p_wumpus
-            sums[2]+=grid.grid[i][j].p_hero
-            sums[3]+=grid.grid[i][j].p_hole
+    print(f'PITS:{p}')
     alpha=[0,0,0,0]
     for i in range(len(sums)):
         if(sums[i]!=0):
@@ -861,11 +863,12 @@ def calc_po3_loop1(neighbors,unobserved_cells,grid,bit_board,string_board,cpu_pi
     if len(neighbors)==0:
         if observations_satisfied(cpu_pieces,string_board,grid):
             #print_string_board(string_board)
-            pits_left=int(sum(pits_per_row))
+            #pits_left=int(sum(pits_per_row))
             observed_calculations=board_calculations(static_observed_cells,string_board)
-            if(saved_unobserved[player_pieces[0]][player_pieces[1]][player_pieces[2]][pits_left]==-1):
-                saved_unobserved[player_pieces[0]][player_pieces[1]][player_pieces[2]][pits_left]=calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,unobserved_cells,pits_per_row)
-            return observed_calculations*saved_unobserved[player_pieces[0]][player_pieces[1]][player_pieces[2]][pits_left]
+            # if(saved_unobserved[player_pieces[0]][player_pieces[1]][player_pieces[2]][pits_left]==-1):
+            #     saved_unobserved[player_pieces[0]][player_pieces[1]][player_pieces[2]][pits_left]=calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,unobserved_cells,pits_per_row)
+            #return observed_calculations*saved_unobserved[player_pieces[0]][player_pieces[1]][player_pieces[2]][pits_left]
+            return observed_calculations*calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,unobserved_cells,pits_per_row)
     else:
         total=0
         neighborsc=copy.copy(neighbors)
@@ -934,6 +937,8 @@ def calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,static_unobs
         # print_string_board(string_board)
         # print('FOUND STATEJFDKSAL;FJDKLAS;FJD;LS?')
         # print(board_calculations(static_unobserved_cells,string_board))
+        string_boardc=copy.deepcopy(string_board)
+        BOARDS.append(string_boardc)
         return board_calculations(static_unobserved_cells,string_board)
     else:
         unobservedc=copy.copy(unobserved_cells)
@@ -1036,19 +1041,19 @@ def calculate_pow2(grid,cell):
                     continue
                 if t==1 and do_calc[1]:
                     p_w=grid.grid[i][j].p_wumpus*(w-1)/w
-                    p_m=grid.grid[i][j].p_mage*(1-cell.p_mage)
-                    p_h=grid.grid[i][j].p_hero*(1-cell.p_hero)
-                    p_p=grid.grid[i][j].p_hole*(1-cell.p_hole)
+                    p_m=grid.grid[i][j].p_mage#*1/(1-cell.p_mage)
+                    p_h=grid.grid[i][j].p_hero#*1/(1-cell.p_hero)
+                    p_p=grid.grid[i][j].p_hole#*1/(1-cell.p_hole)
                 elif t==0 and do_calc[0]:
-                    p_w=grid.grid[i][j].p_wumpus*(1-cell.p_wumpus)
+                    p_w=grid.grid[i][j].p_wumpus#*1/(1-cell.p_wumpus)
                     p_m=grid.grid[i][j].p_mage*(m-1)/m
-                    p_h=grid.grid[i][j].p_hero*(1-cell.p_hero)
-                    p_p=grid.grid[i][j].p_hole*(1-cell.p_hole)
+                    p_h=grid.grid[i][j].p_hero#*1/(1-cell.p_hero)
+                    p_p=grid.grid[i][j].p_hole#*1/(1-cell.p_hole)
                 elif t==2 and do_calc[2]:
-                    p_w=grid.grid[i][j].p_wumpus*(1-cell.p_wumpus)
-                    p_m=grid.grid[i][j].p_mage*(1-cell.p_mage)
+                    p_w=grid.grid[i][j].p_wumpus#*1/(1-cell.p_wumpus)
+                    p_m=grid.grid[i][j].p_mage#*1/(1-cell.p_mage)
                     p_h=grid.grid[i][j].p_hero*(h-1)/h
-                    p_p=grid.grid[i][j].p_hole*(1-cell.p_hole)
+                    p_p=grid.grid[i][j].p_hole#*1/(1-cell.p_hole)
                 elif t==3 and do_calc[3]:
                     if p==0:
                         p_p=0
@@ -1058,9 +1063,9 @@ def calculate_pow2(grid,cell):
                         p_p=grid.grid[i][j].p_hole
                     elif j==cell.row:
                         p_p=grid.grid[i][j].p_hole*(p-1)/p
-                    p_w=grid.grid[i][j].p_wumpus*(1.0-cell.p_wumpus)
-                    p_m=grid.grid[i][j].p_mage*(1.0-cell.p_mage)
-                    p_h=grid.grid[i][j].p_hero*(1.0-cell.p_hero)
+                    p_w=grid.grid[i][j].p_wumpus#*1/(1-cell.p_wumpus)
+                    p_m=grid.grid[i][j].p_mage#*1/(1-cell.p_mage)
+                    p_h=grid.grid[i][j].p_hero#*1/(1-cell.p_hero)
                 new_grid.grid[i][j].set_probabilities(p_p,p_w,p_h,p_m)
         if t==1:
             if do_calc[1]:
@@ -1080,7 +1085,7 @@ def calculate_pow2(grid,cell):
             if do_calc[2]:
                 new_grid.grid[cell.col][cell.row].set_probabilities(0,0,1,0)
                 po=calc_po3(new_grid,True)#*(1-cell.p_wumpus)*(1-cell.p_mage)
-                print(f'Cell:{cell.col},{cell.row},{po}')
+                #print(f'Cell:{cell.col},{cell.row},{po}')
                 outputs.append(po)
             else:
                 outputs.append(0)
@@ -1090,47 +1095,111 @@ def calculate_pow2(grid,cell):
                     outputs.append(0)
                 else:
                     new_grid.grid[cell.col][cell.row].set_probabilities(1,0,0,0)
-                    po=calc_po3(new_grid,False)
+                    po=calc_po3(new_grid,True)
                     outputs.append(po)
             else:
                 outputs.append(0)
     return outputs
 
 def calculate_observations(grid):
+    global BOARDS
     output_grid=grid.copy()
     po=calc_po3(grid,True)
-    #po=1/20
-    print('PO')
-    print(po)
+    # for i in BOARDS:
+    #     print_string_board(i)
+    print(f'size:{len(BOARDS)}')
+    # print('PO')
+    # print(po)
     for i in range (len(grid.grid[0])):
         for j in range(len(grid.grid)):
-            pow2=calculate_pow2(grid,grid.grid[i][j])
-            #print(f"POW:{pow2}")
+            print(f'Current Cell:{i},{j}')
+            #print(poz)
+            poz=calculate_pow3(grid,grid.grid[i][j])
+            #print(poz)
             p_wumpus=grid.grid[i][j].p_wumpus
             p_mage=grid.grid[i][j].p_mage
             p_hero=grid.grid[i][j].p_hero
             p_pit=grid.grid[i][j].p_hole
             if po!=0:
-                if i==2 and j==1:
-                    print("\n\n\nINSIDE OF BIG LOOP IN OBSERVATIONS:")
-                    print(f'POW:{pow2[0]}')
-                    print(f'PO:{po}')
-                    print(f'Previous prob:{grid.grid[i][j].p_mage}\n\n\n')
-                p_wumpus=grid.grid[i][j].p_wumpus*pow2[1]/po
-                p_mage=grid.grid[i][j].p_mage*pow2[0]/po
-                p_pit=grid.grid[i][j].p_hole*pow2[3]/po
-                p_hero=grid.grid[i][j].p_hero*pow2[2]/po
-            #print(f'Final:({p_mage},{p_wumpus},{p_hero},{p_pit}')
+                p_wumpus=grid.grid[i][j].p_wumpus*poz[1]/po
+                p_mage=grid.grid[i][j].p_mage*poz[0]/po
+                p_pit=grid.grid[i][j].p_hole*poz[3]/po
+                p_hero=grid.grid[i][j].p_hero*poz[2]/po
             output_grid[i][j].set_probabilities(p_pit,p_wumpus,p_hero,p_mage)
-            
-            
-            
-            #print(output_grid[i][j])
-            # else:
-            #     output_grid[i][j].set_probabilities(grid.grid[i][j].p_hole,grid.grid[i][j].p_wumpus,grid.grid[i][j].p_hero,grid.grid[i][j].p_mage)
-    #normalize_grid(output_grid)
+            print(output_grid[i][j])
+            print(grid.grid[i][j])
+    BOARDS.clear()
     return output_grid
 
+
+
+def calculate_pow3(grid,cell):
+    global BOARDS
+    output=[0,0,0,0]
+    gridc=Grid(D_MOD)
+    gridc.grid=grid.copy()
+    if(cell.p_wumpus==0 and cell.p_mage==0 and cell.p_hero==0 and cell.p_hole==0):
+        return output
+    temp_probs=[cell.p_mage,cell.p_wumpus,cell.p_hero,cell.p_hole]
+    for i in BOARDS:
+        if i[cell.col][cell.row]=='PM':
+            gridc.grid[cell.col][cell.row].set_probabilities(0,0,0,1)
+            output[0]+=po_from_string_board(gridc,i,'PM',cell)
+            gridc.grid[cell.col][cell.row].set_probabilities(temp_probs[3],temp_probs[1],temp_probs[2],temp_probs[0])
+        elif i[cell.col][cell.row]=='PW':
+            gridc.grid[cell.col][cell.row].set_probabilities(0,1,0,0)
+            output[1]+=po_from_string_board(gridc,i,'PW',cell)
+            gridc.grid[cell.col][cell.row].set_probabilities(temp_probs[3],temp_probs[1],temp_probs[2],temp_probs[0])
+        elif i[cell.col][cell.row]=='PH':
+            gridc.grid[cell.col][cell.row].set_probabilities(0,0,1,0)
+            output[2]+=po_from_string_board(gridc,i,'PH',cell)
+            gridc.grid[cell.col][cell.row].set_probabilities(temp_probs[3],temp_probs[1],temp_probs[2],temp_probs[0])
+        elif i[cell.col][cell.row]=='P':
+            gridc.grid[cell.col][cell.row].set_probabilities(1,0,0,0)
+            output[3]+=po_from_string_board(gridc,i,'P',cell)
+            gridc.grid[cell.col][cell.row].set_probabilities(temp_probs[3],temp_probs[1],temp_probs[2],temp_probs[0])
+    mult=multiplier(gridc)
+    #print(f'Multiplier:{mult}')
+    for i in range(len(output)):
+        output[i]*=mult
+    return output
+
+
+
+def po_from_string_board(grid,string_board,t,cell):
+    w=UNITS[1]
+    m=UNITS[0]
+    h=UNITS[2]
+    p=((grid.axis_dim/3)-1)#*(grid.axis_dim-2)
+    total=1
+    for i in range(len(grid.grid)):
+        for j in range(len(grid.grid[0])):
+            if string_board[i][j]=='P':
+                if t=='P':
+                    if i==cell.col and j==cell.row:
+                        total*=grid.grid[i][j].p_hole
+                    elif not j==cell.row:
+                        total*=grid.grid[i][j].p_hole
+                    elif j==cell.row:
+                        total*=grid.grid[i][j].p_hole*(p-1)/p
+                else:
+                    total*=grid.grid[i][j].p_hole
+            elif string_board[i][j]=='PM':
+                if t=='PM' and i!=cell.col and j!=cell.row:
+                    total*=(grid.grid[i][j].p_mage*(m-1)/m)
+                else:
+                    total*=grid.grid[i][j].p_mage
+            elif string_board[i][j]=='PW':
+                if t=='PW' and i!=cell.col and j!=cell.row:
+                    total*=(grid.grid[i][j].p_wumpus*(w-1)/w)
+                else:
+                    total*=grid.grid[i][j].p_wumpus
+            elif string_board[i][j]=='PH':
+                if t=='PH' and i!=cell.col and j!=cell.row:
+                    total*=(grid.grid[i][j].p_hero*(h-1)/h)
+                else:
+                    total*=grid.grid[i][j].p_hero
+    return total
 # 0:Mage, 1:WUMP, 2:Hero, 3:Pit
 def normalize_grid(grid):
     sums=[0,0,0]
@@ -1278,7 +1347,8 @@ while is_running:
                 #     print('Hello World!')
                 if event.ui_element == reset_grid_button:
                     print('RESET GRID')
-                    grid.reset_grid()
+                    #grid.reset_grid()
+                    grid.grid=calculate_prob(grid)
                 if event.ui_element == generate_grid_button:
                     print('GENERATE GRID')
                     grid.generate_grid(D_MOD)
