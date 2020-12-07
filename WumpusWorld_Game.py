@@ -1214,6 +1214,23 @@ def normalize_grid(grid):
             grid[i][j].p_wumpus=grid[i][j].p_wumpus/sums[1]
             grid[i][j].p_hero=grid[i][j].p_hero/sums[2]
 
+
+
+
+#Calculates the reward for the given cell, given by 'unit'
+#   - Based on the highest probability for a piece to be in 'neighbor'
+def calc_reward(unit, neighbor):
+    pass
+    
+# Calculates a transition (x',y')
+def calc_policy(unit, neighbor):
+    pass
+
+# Returns the best move the cpu can make. FORMAT: (reward, (unit_x,unit_y), (move_x,move_y))
+#   Where move is (x',y') when added to (unit_x, unit_y) brings the unit to the target cell
+def policy_dist(grid):
+    pass
+
 # This function will look at the current board probabilities and will make a move
 # that will maximize cpu_pieces-player_pieces.
 # Similar to heuristic from assignment 2?
