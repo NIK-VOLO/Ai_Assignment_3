@@ -823,7 +823,7 @@ def calc_po3(grid,multiply):
     # print(f'Total without mult:{total}')
     # print(f'Multiplier:{mult}')
     # total*=mult
-    
+
     total*=mult
 
     return total
@@ -1075,10 +1075,10 @@ def calculate_pow2(grid,cell):
             else:
                 outputs.append(0)
         elif t==0:
-            if do_calc[0]:    
+            if do_calc[0]:
                 new_grid.grid[cell.col][cell.row].set_probabilities(0,0,0,1)
                 po=calc_po3(new_grid,True)#*(1-cell.p_wumpus)*(1-cell.p_hero)
-                outputs.append(po) 
+                outputs.append(po)
             else:
                 outputs.append(0)
         elif t==2:
@@ -1280,6 +1280,16 @@ toggle_fog_button = pygame_gui.elements.UIButton(relative_rect =toggle_layout, t
                                                 'right': 'right',
                                                 'top': 'top',
                                                 'bottom': 'top'})
+
+cmove_layout = pygame.Rect(0,0,150,40)
+cmove_layout.topright = (-70, 350)
+move_cpu_button = pygame_gui.elements.UIButton(relative_rect =cmove_layout, text = "Move CPU", manager = manager,
+                                                anchors={'left': 'right',
+                                                'right': 'right',
+                                                'top': 'top',
+                                                'bottom': 'top'})
+
+
 
 generate_layout = pygame.Rect(0,0,150,40)
 generate_layout.topright = (-70, 200)
