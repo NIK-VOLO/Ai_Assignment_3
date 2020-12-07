@@ -1220,11 +1220,23 @@ def normalize_grid(grid):
 #Calculates the reward for the given cell, given by 'unit'
 #   - Based on the highest probability for a piece to be in 'neighbor'
 def calc_reward(unit, neighbor):
-    pass
-    
+    x = max(neighbor.p_hole, neighbor.p_hero, neighbor.p_wumpus, neighbor.p_mage)
+    print(f"HIGHEST PROB: {x}")
+    fight_out = unit.fight(neighbor)
+    y = 0
+    if fight_out == -3:
+        print("invalid fight")
+    elif fight_out == -1:
+        y = -10
+    elif fight_out == -2:
+        y = -5
+    elif fight_out == 1:
+        y = 10
+    return x * y
+
 # Calculates a transition (x',y')
 def calc_policy(unit, neighbor):
-    pass
+    return (neighbor.col - unit.col, neighbor.row - unit.row)
 
 # Returns the best move the cpu can make. FORMAT: (reward, (unit_x,unit_y), (move_x,move_y))
 #   Where move is (x',y') when added to (unit_x, unit_y) brings the unit to the target cell
