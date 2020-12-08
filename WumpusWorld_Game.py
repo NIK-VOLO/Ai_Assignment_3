@@ -1211,8 +1211,12 @@ def calc_reward(unit, neighbor):
         y = 5
     elif fight_out == 1:
         y = 10
-    #print(f"{x[0]} * {y}")
-    return x[0] * y
+
+    result = x[0] * y
+    # CALCULATE BIAS TOWARDS OPPONENT
+    if neighbor.row - unit.row >= 1:
+        result +=1
+    return result
 
 # Calculates a transition (x',y')
 def calc_policy(unit, neighbor):
@@ -1224,6 +1228,7 @@ def policy_dist(grid):
     print("-----------------------------")
     print("\tPOLICY DIST")
     best_move = [float('-inf'), (float('-inf'), float('-inf')), (float('-inf'), float('-inf'))]
+    bm_list = []
     #print(best_move)
     pieces = get_cpu_pieces(grid)
     #print(f"PIECES: {pieces}")
@@ -1239,9 +1244,15 @@ def policy_dist(grid):
                 best_move[0] = r
                 best_move[1] = (i.col,i.row)
                 best_move[2] = p
-    print(f"Best Move: {best_move}")
+                bm_list = []
+                bm_list.append(best_move)
+            elif r == best_move[0]:
+                temp_move = [r, (i.col,i.row), p]
+                bm_list.append(temp_move)
+
+    print(f"Best Moves: {bm_list}")
     print("-----------------------------")
-    return best_move
+    return random.choice(bm_list)
 
 # This function will look at the current board probabilities and will make a move
 # that will maximize cpu_pieces-player_pieces.
