@@ -124,7 +124,7 @@ class Cell:
                     return -1
 
         # Self piece is a cpu piece
-        elif 4<self.ctype<=6:
+        elif 4<=self.ctype<=6:
             if cell2.ctype==Ctype.EMPTY:
                 return 0
             elif cell2.ctype==Ctype.HOLE:

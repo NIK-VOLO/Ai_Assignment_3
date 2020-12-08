@@ -1220,19 +1220,30 @@ def normalize_grid(grid):
 #Calculates the reward for the given cell, given by 'unit'
 #   - Based on the highest probability for a piece to be in 'neighbor'
 def calc_reward(unit, neighbor):
-    x = max(neighbor.p_hole, neighbor.p_hero, neighbor.p_wumpus, neighbor.p_mage)
-    print(f"HIGHEST PROB: {x}")
-    fight_out = unit.fight(neighbor)
+    p = [(neighbor.p_mage,1),(neighbor.p_wumpus,2),(neighbor.p_hero,3),(neighbor.p_hole,7)]
+    print(p)
+    x = p[0]
+    for i in range(len(p)-1):
+        z = p[i+1]
+        if z[0] > x[0]:
+            x = z
+    #print(f"HIGHEST PROB: {x}")
+    temp = neighbor.copy()
+    temp.ctype = x[1]
+    #print(f"UNIT TYPE:{unit.get_type_text()}")
+    #print(f"Temp CELL: {temp.get_type_text()}")
+    fight_out = unit.fight(temp)
     y = 0
     if fight_out == -3:
         print("invalid fight")
     elif fight_out == -1:
         y = -10
     elif fight_out == -2:
-        y = -5
+        y = 5
     elif fight_out == 1:
         y = 10
-    return x * y
+    #print(f"{x[0]} * {y}")
+    return x[0] * y
 
 # Calculates a transition (x',y')
 def calc_policy(unit, neighbor):
@@ -1241,16 +1252,82 @@ def calc_policy(unit, neighbor):
 # Returns the best move the cpu can make. FORMAT: (reward, (unit_x,unit_y), (move_x,move_y))
 #   Where move is (x',y') when added to (unit_x, unit_y) brings the unit to the target cell
 def policy_dist(grid):
-    pass
+    print("-----------------------------")
+    print("\tPOLICY DIST")
+    best_move = [float('-inf'), (float('-inf'), float('-inf')), (float('-inf'), float('-inf'))]
+    #print(best_move)
+    pieces = get_cpu_pieces(grid)
+    #print(f"PIECES: {pieces}")
+    for i in pieces:
+        neighbors = get_neighbors(i, grid)
+        #print(f"NEIGHBORS: {neighbors}")
+        for j in neighbors:
+            r = calc_reward(i, j)
+            p = calc_policy(i, j)
+            #print(f"r: {r} -- p: {p}")
+            #print(best_move[0])
+            if r > best_move[0]:
+                best_move[0] = r
+                best_move[1] = (i.col,i.row)
+                best_move[2] = p
+    print(f"Best Move: {best_move}")
+    print("-----------------------------")
+    return best_move
 
 # This function will look at the current board probabilities and will make a move
 # that will maximize cpu_pieces-player_pieces.
 # Similar to heuristic from assignment 2?
 def cpu_make_move(grid):
+    global UNITS
+    global PLAYER_NUM_UNITS
+    global CPU_NUM_UNITS
+    print("------------------------------------")
+    print("\t\tMOVE CPU")
+    best_move = policy_dist(grid)
+    piece_coord = best_move[1]
+    trans = best_move[2]
+    t_coord = (piece_coord[0] + trans[0], piece_coord[1] + trans[1])
+    p_piece = grid.grid[piece_coord[0]][piece_coord[1]]
+    t_piece = grid.grid[t_coord[0]][t_coord[1]]
 
+    code=p_piece.fight(t_piece)
+    #print(f'Code:{code}')
+    # No battle, swap cells
+    if code==0:
+        temp_type = t_piece.ctype
+        t_piece.ctype = p_piece.ctype
+        p_piece.ctype = temp_type
+    # Invalid move
+    if code==-3:
+        pass
+    # both pieces die
+    elif code==-2:
+        UNITS[t_piece.ctype-1] -= 1 # Decrements the amount of units of a particular type
+        #print(f'UNITS: {UNITS}')
+        t_piece.ctype=Ctype.EMPTY
+        p_piece.ctype=Ctype.EMPTY
+        PLAYER_NUM_UNITS -= 1
+        CPU_NUM_UNITS -= 1
+    # t_piece dies
+    elif code==1:
+        # code to subtract from total pieces here
+        UNITS[t_piece.ctype-1] -= 1
+        PLAYER_NUM_UNITS -= 1
+        t_piece.ctype=p_piece.ctype
+        p_piece.ctype=Ctype.EMPTY
+    # p_piece dies
+    elif code==-1:
+        #print('here')
 
-
-    return grid
+        #print(f'UNITS: {UNITS}')
+        p_piece.ctype=Ctype.EMPTY
+        print(p_piece)
+        CPU_NUM_UNITS -= 1
+    elif code==-4:
+        print('Probably a bug?')
+    print("------------------------------------")
+    grid.draw_map()
+    return
 
 
 
@@ -1395,6 +1472,8 @@ while is_running:
                     FOG = not FOG
                     grid.draw_map()
                     print(f'TOGGLE FOG {FOG}')
+                if event.ui_element == move_cpu_button:
+                    cpu_make_move(grid)
 
         if event.type == pygame.MOUSEBUTTONUP:
             pos = pygame.mouse.get_pos()
