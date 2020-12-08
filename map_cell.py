@@ -52,7 +52,7 @@ class Cell:
         cell.select_opacity=self.select_opacity
         cell.fog=self.fog
         cell.fog_opacity=self.fog_opacity
-        cell.observe_array=self.observe_array
+        cell.observe_array=self.observe_array #Bitarray that holds the observations of the current cell.
         cell.p_hole=self.p_hole
         cell.p_mage=self.p_mage
         cell.p_wumpus=self.p_wumpus
@@ -122,7 +122,6 @@ class Cell:
                 #cell1 piece dies
                 else:
                     return -1
-
         # Self piece is a cpu piece
         elif 4<=self.ctype<=6:
             if cell2.ctype==Ctype.EMPTY:
