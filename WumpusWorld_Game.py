@@ -50,6 +50,7 @@ heapq.heapify(p_queue)
 FOG = True
 FRESH = True
 BOARDS=list()
+CALC_TYPE = 0
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -343,7 +344,10 @@ def player_move_unit(grid, event):
                 p_piece.draw(background)
 
 
-                grid.grid=calculate_prob(grid)
+                if(CALC_TYPE == 0):
+                    grid.grid=calculate_prob(grid)
+                else:
+                    grid.grid=calculate_prob_forward(grid)
                 #grid.grid=calculate_observations(grid)
 
                 str_board=grid.gen_string_board()
@@ -733,6 +737,77 @@ def calculate_prob(grid):
     #print("got to output grid")
     return output_grid
 
+def calculate_prob_forward(grid):
+    output_grid=grid.copy()
+    w_prob=0
+    m_prob=0
+    h_prob=0
+    p_prob=0
+    axis_dim = 3*D_MOD
+    for i in range(axis_dim):
+        for j in range(axis_dim):
+            temp_cell=grid.grid[i][j]
+            w_prob = (1-(1/PLAYER_NUM_UNITS)) * grid.grid[i][j].p_wumpus
+            m_prob = (1-(1/PLAYER_NUM_UNITS)) * grid.grid[i][j].p_mage
+            h_prob = (1-(1/PLAYER_NUM_UNITS)) * grid.grid[i][j].p_hero
+            p_prob = grid.grid[i][j].p_hole
+            neighbors=get_neighbors(temp_cell,grid)
+            # print(f'CELL:{temp_cell}')
+            if temp_cell.p_wumpus>=.99 or temp_cell.p_mage>=.99 or temp_cell.p_hero>=.99 or temp_cell.p_hole>=.99:
+                # print('Inside loop')
+                output_grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
+                w_prob=0
+                m_prob=0
+                h_prob=0
+                p_prob=0
+            else:
+                # print('Else')
+                for n in neighbors:
+                    count = unknown_neighbors_forward(n,grid)
+                    if(n.row > temp_cell.row and count > 0):
+                        w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*(count))
+                        m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*(count))
+                        h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*(count))
+                    else:
+                        w_prob += 0
+                        m_prob += 0
+                        h_prob += 0
+                    # w_prob += n.p_wumpus * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
+                    # m_prob += n.p_mage * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
+                    # h_prob += n.p_hero * 1/(PLAYER_NUM_UNITS*(len(get_neighbors(n,grid))))
+                output_grid[i][j].set_probabilities(p_prob,w_prob,h_prob,m_prob)
+                w_prob=0
+                m_prob=0
+                h_prob=0
+                p_prob=0
+    #print("got to output grid")
+    return output_grid
+
+def unknown_neighbors_forward(cell,grid):
+    global D_MOD
+    neighbors = []
+    board_size = D_MOD * 3
+    print(f"CELL: ({cell.col},{cell.row})")
+    for j in range(3):
+        for i in range(3):
+            #print(f'{cell.col-1+i}, {cell.row-1+j}')
+            if(i == 1 and j == 1): # the current cell is self, don't check
+                continue
+            if(cell.col-1+i > board_size -1 or cell.col-1+i < 0 or cell.row-1+j > board_size -1 or cell.row-1+j < 0):
+                #print(f"({i},{j}) OUT OF BOUNDS")
+                continue
+            if(grid.grid[cell.col-1+i][cell.row-1+j].p_hole>.99 or grid.grid[cell.col-1+i][cell.row-1+j].p_mage>.99 or grid.grid[cell.col-1+i][cell.row-1+j].p_wumpus>.99 or grid.grid[cell.col-1+i][cell.row-1+j].p_hero>.99):
+                continue
+            if cell.row-1+j >= cell.row:
+                print(f"SKIP: {cell.row-1+j} >= {cell.row}")
+                continue
+            # if 4 <= grid.grid[cell.col-1+i][cell.row-1+j].ctype <= 6:
+            #     continue
+            #print(f"({i},{j}) is VALID")
+            neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
+    print(f"len(neighbors) : {len(neighbors)}")
+    return len(neighbors)
+
 def unknown_neighbors(cell,grid):
     global D_MOD
     neighbors = []
@@ -751,6 +826,7 @@ def unknown_neighbors(cell,grid):
             #     continue
             #print(f"({i},{j}) is VALID")
             neighbors.append(grid.grid[cell.col-1+i][cell.row-1+j])
+
     return len(neighbors)
 
 
@@ -1240,7 +1316,7 @@ def policy_dist(grid):
             p = calc_policy(i, j)
             #print(f"r: {r} -- p: {p}")
             #print(best_move[0])
-            if r > best_move[0]:
+            if round(r,1) > round(best_move[0], 1):
                 best_move[0] = r
                 best_move[1] = (i.col,i.row)
                 best_move[2] = p
@@ -1251,8 +1327,10 @@ def policy_dist(grid):
                 bm_list.append(temp_move)
 
     print(f"Best Moves: {bm_list}")
+    bm = random.choice(bm_list)
+    print(f"BM: {bm}")
     print("-----------------------------")
-    return random.choice(bm_list)
+    return bm
 
 # This function will look at the current board probabilities and will make a move
 # that will maximize cpu_pieces-player_pieces.
@@ -1375,7 +1453,13 @@ move_cpu_button = pygame_gui.elements.UIButton(relative_rect =cmove_layout, text
                                                 'top': 'top',
                                                 'bottom': 'top'})
 
-
+calc_layout = pygame.Rect(0,0,150,40)
+calc_layout.topright = (-70, 400)
+toggle_calc_button = pygame_gui.elements.UIButton(relative_rect =calc_layout, text = "Toggle Calc Method", manager = manager,
+                                                anchors={'left': 'right',
+                                                'right': 'right',
+                                                'top': 'top',
+                                                'bottom': 'top'})
 
 generate_layout = pygame.Rect(0,0,150,40)
 generate_layout.topright = (-70, 200)
@@ -1446,7 +1530,7 @@ while is_running:
                 if event.ui_element == reset_grid_button:
                     print('RESET GRID')
                     #grid.reset_grid()
-                    grid.grid=calculate_prob(grid)
+                    grid.grid=calculate_prob_forward(grid)
                 if event.ui_element == generate_grid_button:
                     print('GENERATE GRID')
                     grid.generate_grid(D_MOD)
@@ -1459,6 +1543,13 @@ while is_running:
                     grid.grid=calculate_observations(grid)
                     print(grid.grid[0][1])
                     VICTORY_TEXT=check_win()
+                if event.ui_element == toggle_calc_button:
+                    CALC_TYPE = not CALC_TYPE
+                    if(CALC_TYPE == 0):
+                        print("CALC METHOD: Standard")
+                    else:
+                        print("CALC METHOD: Forward")
+
         if event.type == pygame.MOUSEBUTTONUP:
             pos = pygame.mouse.get_pos()
             col, row = get_clicked_pos(grid, pos)
