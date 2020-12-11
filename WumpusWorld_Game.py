@@ -1468,16 +1468,16 @@ game_status_text = pygame_gui.elements.UILabel(relative_rect = game_status_layou
                                                 'top': 'top',
                                                 'bottom': 'bottom'})
 
-reset_layout = pygame.Rect(0,0,150,40)
-reset_layout.topright = (-70, 250)
-reset_grid_button = pygame_gui.elements.UIButton(relative_rect =reset_layout, text = "Reset Board", manager = manager,
-                                                anchors={'left': 'right',
-                                                'right': 'right',
-                                                'top': 'top',
-                                                'bottom': 'top'})
+# reset_layout = pygame.Rect(0,0,150,40)
+# reset_layout.topright = (-70, 250)
+# reset_grid_button = pygame_gui.elements.UIButton(relative_rect =reset_layout, text = "Reset Board", manager = manager,
+#                                                 anchors={'left': 'right',
+#                                                 'right': 'right',
+#                                                 'top': 'top',
+#                                                 'bottom': 'top'})
 
 toggle_layout = pygame.Rect(0,0,150,40)
-toggle_layout.topright = (-70, 300)
+toggle_layout.topright = (-70, 250)
 toggle_fog_button = pygame_gui.elements.UIButton(relative_rect =toggle_layout, text = "Toggle Fog", manager = manager,
                                                 anchors={'left': 'right',
                                                 'right': 'right',
@@ -1485,7 +1485,7 @@ toggle_fog_button = pygame_gui.elements.UIButton(relative_rect =toggle_layout, t
                                                 'bottom': 'top'})
 
 cmove_layout = pygame.Rect(0,0,150,40)
-cmove_layout.topright = (-70, 350)
+cmove_layout.topright = (-70, 300)
 move_cpu_button = pygame_gui.elements.UIButton(relative_rect =cmove_layout, text = "Move CPU", manager = manager,
                                                 anchors={'left': 'right',
                                                 'right': 'right',
@@ -1493,7 +1493,7 @@ move_cpu_button = pygame_gui.elements.UIButton(relative_rect =cmove_layout, text
                                                 'bottom': 'top'})
 
 calc_layout = pygame.Rect(0,0,150,40)
-calc_layout.topright = (-70, 400)
+calc_layout.topright = (-70, 350)
 toggle_calc_button = pygame_gui.elements.UIButton(relative_rect =calc_layout, text = "Toggle Calc Method", manager = manager,
                                                 anchors={'left': 'right',
                                                 'right': 'right',
@@ -1564,10 +1564,10 @@ while is_running:
                 #print(f"D_MOD = {D_MOD}")
                 # if event.ui_element == hello_button:
                 #     print('Hello World!')
-                if event.ui_element == reset_grid_button:
-                    print('RESET GRID')
-                    #grid.reset_grid()
-                    grid.grid=calculate_prob_forward(grid)
+                # if event.ui_element == reset_grid_button:
+                #     print('RESET GRID')
+                #     #grid.reset_grid()
+                #     grid.grid=calculate_prob_forward(grid)
                 if event.ui_element == generate_grid_button:
                     print('GENERATE GRID')
                     grid.generate_grid(D_MOD)
