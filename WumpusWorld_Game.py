@@ -343,11 +343,12 @@ def player_move_unit(grid, event):
                 t_piece.draw(background)
                 p_piece.draw(background)
 
-
-                if(CALC_TYPE == 0):
-                    grid.grid=calculate_prob(grid)
-                else:
-                    grid.grid=calculate_prob_forward(grid)
+                VICTORY_TEXT=check_win()
+                if PLAYER_NUM_UNITS!=0 and CPU_NUM_UNITS!=0:
+                    if(CALC_TYPE == 0):
+                        grid.grid=calculate_prob(grid)
+                    else:
+                        grid.grid=calculate_prob_forward(grid)
                 #grid.grid=calculate_observations(grid)
 
                 str_board=grid.gen_string_board()
@@ -373,9 +374,10 @@ def player_move_unit(grid, event):
                 #-----------------------------------
 
                 grid.draw_map()
-                grid.grid=calculate_observations(grid)
-                cpu_make_move(grid)
-                grid.grid=calculate_observations(grid)
+                if PLAYER_NUM_UNITS!=0 and CPU_NUM_UNITS!=0:
+                    grid.grid=calculate_observations(grid)
+                    cpu_make_move(grid)
+                    grid.grid=calculate_observations(grid)
                 #grid.grid=calculate_prob(grid)
                 # x=alphabeta((str_board,CPU_NUM_UNITS,PLAYER_NUM_UNITS),2,float('inf'),float('-inf'),True)
                 # PLAYER_NUM_UNITS=x[1][2]
@@ -1004,20 +1006,19 @@ def calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,static_unobs
         #     string_boardc=copy.deepcopy(string_board)
         #     total+=calc_po3_loop2(grid,string_boardc,player_pieces,unobservedc,static_unobserved_cells,pits_per_row)
         #     pits_per_row[cell.row]+=1
-
+        string_boardc=copy.deepcopy(string_board)
         if player_pieces[0]>0 and cell.p_mage>0:
             #pdb.set_trace()
             #print(player_pieces[0],end='')
             player_pieces[0]-=1
-            string_boardc=copy.deepcopy(string_board)
+            #string_boardc=copy.deepcopy(string_board)
             string_boardc[cell.col][cell.row]='PM'
-
             total+=calc_po3_loop2(grid,string_boardc,player_pieces,unobservedc,static_unobserved_cells,pits_per_row)
             player_pieces[0]+=1
 
         if player_pieces[2]>0 and cell.p_hero>0:
             player_pieces[2]-=1
-            string_boardc=copy.deepcopy(string_board)
+            #string_boardc=copy.deepcopy(string_board)
             string_boardc[cell.col][cell.row]='PH'
 
             total+=calc_po3_loop2(grid,string_boardc,player_pieces,unobservedc,static_unobserved_cells,pits_per_row)
@@ -1030,10 +1031,9 @@ def calc_po3_loop2(grid,string_board,player_pieces,unobserved_cells,static_unobs
             total+=calc_po3_loop2(grid,string_boardc,player_pieces,unobservedc,static_unobserved_cells,pits_per_row)
             player_pieces[1]+=1
 
-
         if sum(player_pieces)<len(unobserved_cells):
         #if sum(player_pieces)+sum(pits_per_row)<len(unobserved_cells):
-            string_boardc=copy.deepcopy(string_board)
+            #string_boardc=copy.deepcopy(string_board)
             string_boardc[cell.col][cell.row]='E'
             total+=calc_po3_loop2(grid,string_boardc,player_pieces,unobservedc,static_unobserved_cells,pits_per_row)
         return total
